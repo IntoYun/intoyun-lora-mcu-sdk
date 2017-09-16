@@ -1,11 +1,13 @@
 # LoRa从模式MCU SDK
 
 ## 目录说明
+
+```
 |-- docs
 |-- keil
 |-- README.md
-`-- src
-
+ -- src
+```
 - 1.docs为文档类
 - 2.keil为示例工程(Keil-MDK平台)
 - 3.src为源码
