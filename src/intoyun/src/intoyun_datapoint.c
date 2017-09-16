@@ -870,9 +870,9 @@ int intoyunSendDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16
 
 void intoyunParseReceiveDatapoints(const uint8_t *payload, uint32_t len, uint8_t *customData)
 {
-    /* log_v("lorawan receive platform data length = %d\r\n",len); */
-    /* log_v("lorawan receive platform data:\r\n"); */
-    /* log_v_dump((uint8_t *)payload,len); */
+    log_v("lorawan receive platform data length = %d\r\n",len);
+    log_v("lorawan receive platform data:\r\n");
+    log_v_dump((uint8_t *)payload,len);
 
     //dpid(1-2 bytes)+data type(1 byte)+data len(1-2 bytes)+data(n bytes)
     //大端表示，如果最高位是1，则表示两个字节，否则是一个字节

@@ -60,6 +60,7 @@ void _log_print_dump(uint8_t *buf, uint16_t len)
 
     if(len>0){
         for(i = 0; i < len-1; i++) {
+            memset(buffer,0,sizeof(buffer));
             sprintf(buffer, "%02x:", buf[i]);
             HAL_Print(buffer,sizeof(buffer));
         }
