@@ -1,6 +1,7 @@
 #include "intoyun_interface.h"
 #include "stm32f1xx_hal.h"
 
+//定义产品ID秘钥 版本号
 #define PRODUCT_ID                       "y4NFFyDE9uq6H202"//产品ID
 #define PRODUCT_SECRET                   "ab697b0dc1716d24cfc49b071668e766"//产品秘钥
 #define HARDWARE_VERSION                 "V1.0.0"          //硬件版本号
@@ -15,6 +16,7 @@
 #define WAKEUP_PIN          GPIO_PIN_9
 #define WAKEUP_GPIO_PORT    GPIOB
 
+//流程
 static enum eDeviceState
 {
     DEVICE_STATE_JOIN,
@@ -173,12 +175,17 @@ void userInit(void)
     System.setEventCallback(LoRaWanEventProcess);
     delay(10);
 
+    //设置速率
     LoRaWan.setDatarate(3);
+    //设置通道2的速率范围
     LoRaWan.setChannelDRRange(2,3,3);
+    //设置接收窗口2的速率和频率
     LoRaWan.setRX2Params(3,434665000);
+    //关闭通道0
     LoRaWan.setChannelStatus(0,0);
+    //关闭通道1
     LoRaWan.setChannelStatus(1,0);
-    //OTAA入网
+    //OTAA入网 事件方式运行 其入网结果由LoRaWanEventProcess()给出
     Cloud.connect(3,0);
 }
 
@@ -203,6 +210,7 @@ void userHandle(void)
         Cloud.writeDatapointNumberInt32(DPID_NUMBER_SPEED, dpNumberSpeed);
         Cloud.writeDatapointString(DPID_STRING_LCD_DISPLAY,dpStringLcdDisplay);
         Cloud.writeDatapointBinary(DPID_BINARY,dpBinaryVal,9);
+        //发送数据 其结果由LoRaWanEventProcess()给出
         Cloud.sendDatapointAll(false,0);
         deviceState = DEVICE_STATE_IDLE;
         break;

@@ -28,7 +28,7 @@ void GPIO_Init(void)
     HAL_GPIO_WritePin(WAKEUP_GPIO_PORT, WAKEUP_PIN, GPIO_PIN_SET);
 }
 
-//不运行lorawan协议
+//处理事件
 void LoRaRadioEventProcess(uint8_t eventType,lora_radio_event_type_t event, int rssi, uint8_t *data, uint32_t len)
 {
     if(eventType == event_lora_radio_status){
@@ -76,7 +76,7 @@ void userInit(void)
         log_v("exe mac pause fail\r\n");
     }
     delay(50);
-    if(!LoRa.radioSetFreq(433175000))
+    if(!LoRa.radioSetFreq(433175000)) //设置频率
     {
         log_v("set radio freq fail\r\n");
     }

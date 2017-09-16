@@ -1,6 +1,7 @@
 #include "intoyun_interface.h"
 #include "stm32f1xx_hal.h"
 
+//定义产品ID秘钥 版本号
 #define PRODUCT_ID                       "y4NFFyDE9uq6H202"//产品ID
 #define PRODUCT_SECRET                   "ab697b0dc1716d24cfc49b071668e766"//产品秘钥
 #define HARDWARE_VERSION                 "V1.0.0"          //硬件版本号
@@ -15,6 +16,7 @@
 #define WAKEUP_PIN          GPIO_PIN_9
 #define WAKEUP_GPIO_PORT    GPIOB
 
+//流程
 static enum eDeviceState
 {
     DEVICE_STATE_JOIN,
@@ -69,7 +71,7 @@ void WakeupModule(void)
     WakeupPinWrite(1);
 }
 
-
+//事件处理
 void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi, uint8_t *data, uint32_t len)
 {
     if(eventType == event_lorawan_status){
@@ -90,6 +92,7 @@ void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi,
         case ep_lorawan_send_fail:
             log_v("event lorawan send fail\r\n");
             break;
+
         case ep_lorawan_module_wakeup:
             log_v("event lorawan system wakeup\r\n");
             break;
@@ -162,16 +165,22 @@ void userInit(void)
     delay(500);
     log_v("lorawan slave mode\r\n");
     delay(100);
+    //发送产品信息
     System.setDeviceInfo(PRODUCT_ID,HARDWARE_VERSION,SOFTWARE_VERSION);
+    //设置事件回调
     System.setEventCallback(LoRaWanEventProcess);
     delay(10);
-
+    //设置速率
     LoRaWan.setDatarate(3);
+    //设置通道2的速率范围
     LoRaWan.setChannelDRRange(2,3,3);
+    //设置接收窗口2的速率和频率
     LoRaWan.setRX2Params(3,434665000);
+    //关闭通道0
     LoRaWan.setChannelStatus(0,0);
+    //关闭通道1
     LoRaWan.setChannelStatus(1,0);
-    //OTAA入网
+    //OTAA入网 阻塞运行 超时时间为400s
     if(Cloud.connect(3,400) == 0){
         log_v("join ok\r\n");
         deviceState = DEVICE_STATE_SEND;
@@ -203,6 +212,7 @@ void userHandle(void)
         Cloud.writeDatapointString(DPID_STRING_LCD_DISPLAY,dpStringLcdDisplay);
         Cloud.writeDatapointBinary(DPID_BINARY,dpBinaryVal,9);
 
+        //阻塞发送数据 超时时间为120s
         int8_t sendResult = Cloud.sendDatapointAll(false,120);
         log_v("sendResult=%d\r\n",sendResult);
         if(sendResult == 0){
