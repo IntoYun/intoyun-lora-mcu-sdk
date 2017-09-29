@@ -33,10 +33,16 @@ int8_t loraSendStatus = 0; //数据发送状态 0 成功 1 发送中 -1 失败
 //初始化设置参数 手动发送 发送间隔时间  发送运行时间
 volatile datapoint_control_t g_datapoint_control = {DP_TRANSMIT_MODE_MANUAL, 0, 0};
 
+//System API
 void intoyunInit(void)
 {
     HAL_SystemInit();
     ProtocolParserInit();
+}
+
+void intoyunLoop(void)
+{
+    ProtocolModuleActiveSendHandle();
 }
 
 void intoyunSetEventCallback(event_handler_t loraHandler)
@@ -47,9 +53,53 @@ void intoyunSetEventCallback(event_handler_t loraHandler)
     }
 }
 
-void intoyunLoop(void)
+void intoyunQueryInfo(char *moduleVersion, char *moduleType, char *deviceId, uint8_t *at_mode)
 {
-    ProtocolModuleActiveSendHandle();
+    device_info_t info;
+    ProtocolQueryInfo(&info);
+
+    log_v("moduleVer = %s\r\n",info.module_version);
+    log_v("moduleType = %s\r\n",info.module_type);
+    log_v("deviceId = %s\r\n",info.device_id);
+    log_v("atmode = %d\r\n",info.at_mode);
+
+    strncpy(moduleVersion,info.module_version,sizeof(info.module_version));
+    strncpy(moduleType,info.module_type,sizeof(info.module_type));
+    strncpy(deviceId,info.device_id,sizeof(info.device_id));
+    *at_mode = info.at_mode;
+}
+
+void intoyunSetupDevice(char *productId, char *hardVer, char *softVer)
+{
+    ProtocolSetupDevice(productId,hardVer,softVer);
+}
+
+bool intoyunSetupProtocol(uint8_t mode)
+{
+    if(mode > 2){
+        return false;
+    }
+    return ProtocolSetupProtocolMode(mode);
+}
+
+bool intoyunExecuteRestart(void)
+{
+    return ProtocolExecuteRestart();
+}
+
+bool intoyunExecuteRestore(void)
+{
+    return ProtocolExecuteRestore();
+}
+
+bool intoyunSetupSystemSleep(uint32_t timeout)
+{
+    return ProtocolSetupSystemSleep(timeout);
+}
+
+bool intoyunExecuteDFU(void)
+{
+    return ProtocolExecuteDFU();
 }
 
 void intoyunPutPipe(uint8_t value)
@@ -57,6 +107,72 @@ void intoyunPutPipe(uint8_t value)
     ProtocolPutPipe(value);//将接收到的数据放入缓冲区
 }
 
+
+//Cloud API
+int intoyunExecuteMacJoin(uint8_t type, uint32_t timeout)
+{
+    if(type > 3){
+        return false;
+    }
+    int joinState;
+    uint32_t _timeout = timeout;
+    if(_timeout != 0){
+        if(_timeout < LORAWAN_JOIN_TIMEOUT){
+            _timeout = LORAWAN_JOIN_TIMEOUT;
+        }
+    }
+
+    joinState = ProtocolExecuteMacJoin(type, _timeout);
+    log_v("joinState = %d\r\n",joinState);
+    if(joinState != 4){//断开连接
+        lorawanJoinStatus = LORAWAN_JOIN_FAIL;
+        return lorawanJoinStatus;
+    }else {//入网中
+        if(_timeout == 0){//退出 入网状态由事件返回
+            lorawanJoinStatus = LORAWAN_JOINING;
+            return lorawanJoinStatus;
+        }else{
+            uint32_t prevTime = millis();
+            loraSendResult = 0;
+            while(1){
+                intoyunLoop();
+                if(loraSendResult == 1){
+                    lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
+                    return lorawanJoinStatus;
+                }else if(loraSendResult == 2){
+                    lorawanJoinStatus = LORAWAN_JOIN_FAIL;
+                    return lorawanJoinStatus;
+                }
+                if(millis() - prevTime > _timeout*1000){
+                    lorawanJoinStatus = LORAWAN_JOIN_FAIL;
+                    return lorawanJoinStatus;
+                }
+            }
+        }
+    }
+}
+
+int intoyunQueryConnected(void)
+{
+    return lorawanJoinStatus;
+}
+
+void intoyunExecuteDisconnect(void)
+{
+    ProtocolExecuteMacJoin(1, 0);
+}
+
+bool intoyunQueryDisconnected(void)
+{
+    if(lorawanJoinStatus == -1){ //已断开连接
+        return true;
+    }else{
+        return false;
+    }
+}
+
+//datapoint API
+/*
 void intoyunSetDataAutoSend(uint32_t time)
 {
     g_datapoint_control.datapoint_transmit_mode = DP_TRANSMIT_MODE_AUTOMATIC;
@@ -68,6 +184,39 @@ void intoyunSetDataAutoSend(uint32_t time)
     g_datapoint_control.datapoint_transmit_lapse = time;
 }
 
+void intoyunDatapointControl(dp_transmit_mode_t mode, uint32_t lapse)
+{
+    g_datapoint_control.datapoint_transmit_mode = mode;
+    if(DP_TRANSMIT_MODE_AUTOMATIC == g_datapoint_control.datapoint_transmit_mode)
+    {
+        if(lapse < DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL){
+        g_datapoint_control.datapoint_transmit_lapse = DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL;
+        }else{
+        g_datapoint_control.datapoint_transmit_lapse = lapse;
+        }
+    }
+}
+*/
+
+//获取数据点发送模式
+static dp_transmit_mode_t intoyunGetDatapointTransmitMode(void)
+{
+    return g_datapoint_control.datapoint_transmit_mode;
+}
+
+//小数点
+static double _pow(double base, int exponent)
+{
+    double result = 1.0;
+    int i = 0;
+
+    for (i = 0; i < exponent; i++) {
+        result *= base;
+    }
+    return result;
+}
+
+//查询数据点是否存在
 static int intoyunDiscoverProperty(const uint16_t dpID)
 {
     for (int index = 0; index < properties_count; index++)
@@ -80,6 +229,7 @@ static int intoyunDiscoverProperty(const uint16_t dpID)
     return -1;
 }
 
+//判断数据是否改变
 static bool intoyunPropertyChanged(void)
 {
     for (int i = 0; i < properties_count; i++)
@@ -92,11 +242,13 @@ static bool intoyunPropertyChanged(void)
     return false;
 }
 
+//获取数据点定义的序号
 static uint8_t intoyunGetPropertyCount(void)
 {
     return properties_count;
 }
 
+//清除数据改变状态
 static void intoyunPropertyChangeClear(void)
 {
     for (int i = 0; i < properties_count; i++)
@@ -108,80 +260,332 @@ static void intoyunPropertyChangeClear(void)
     }
 }
 
-
-dp_transmit_mode_t intoyunGetDatapointTransmitMode(void)
-{
-    return g_datapoint_control.datapoint_transmit_mode;
-}
-
-void intoyunDatapointControl(dp_transmit_mode_t mode, uint32_t lapse)
-{
-    g_datapoint_control.datapoint_transmit_mode = mode;
-    /* if(DP_TRANSMIT_MODE_AUTOMATIC == g_datapoint_control.datapoint_transmit_mode) */
-    {
-        if(lapse < DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL)
-        {
-            g_datapoint_control.datapoint_transmit_lapse = DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL;
-        }
-        else
-        {
-            g_datapoint_control.datapoint_transmit_lapse = lapse;
-        }
-    }
-}
-
-static double _pow(double base, int exponent)
-{
-    double result = 1.0;
-    int i = 0;
-
-    for (i = 0; i < exponent; i++) {
-        result *= base;
-    }
-    return result;
-}
-
-static void intoyunDatapointValueInit(uint16_t count,uint16_t dpID,data_type_t dataType,dp_permission_t permission, dp_policy_t policy,int lapse)
+//初始化数据点
+static void intoyunDatapointValueInit(uint16_t count,uint16_t dpID,data_type_t dataType,dp_permission_t permission)
 {
     properties[count]=(property_conf*)malloc(sizeof(property_conf));
 
     properties[count]->dpID       = dpID;
     properties[count]->dataType   = dataType;
     properties[count]->permission = permission;
-    properties[count]->policy     = policy;
-    properties[count]->lapse      = lapse;
     properties[count]->runtime    = 0;
     properties[count]->readFlag   = RESULT_DATAPOINT_OLD;
 }
 
-void intoyunDefineDatapointBool(const uint16_t dpID, dp_permission_t permission, const bool value, dp_policy_t policy, const int lapse)
+//组织数据点数据内容
+static uint16_t intoyunFormDataPointBinary(int property_index, uint8_t* buffer)
 {
-    int lapseTemp = lapse;
+    int32_t index = 0;
 
+    if(properties[property_index]->dpID < 0x80)
+    {
+        buffer[index++] = properties[property_index]->dpID & 0xFF;
+    }
+    else
+    {
+        buffer[index++] = (properties[property_index]->dpID >> 8) | 0x80;
+        buffer[index++] = properties[property_index]->dpID & 0xFF;
+    }
+
+    switch(properties[property_index]->dataType)
+    {
+        case DATA_TYPE_BOOL:       //bool型
+            buffer[index++] = 0x00;  //类型
+            buffer[index++] = 0x01;  //长度
+            buffer[index++] = (bool)(properties[property_index]->boolValue);
+            break;
+
+        case DATA_TYPE_NUM:        //数值型 int型
+            {
+                buffer[index++] = 0x01;
+                int32_t value;
+                if(properties[property_index]->numberProperty.resolution == 0)
+                {
+                    value = (int32_t)properties[property_index]->numberIntValue;
+                }
+                else
+                {
+                    value = (properties[property_index]->numberDoubleValue - properties[property_index]->numberProperty.minValue) \
+                        * _pow(10, properties[property_index]->numberProperty.resolution);
+                }
+
+                if(value & 0xFFFF0000) {
+                    buffer[index++] = 0x04;
+                    buffer[index++] = (value >> 24) & 0xFF;
+                    buffer[index++] = (value >> 16) & 0xFF;
+                    buffer[index++] = (value >> 8) & 0xFF;
+                    buffer[index++] = value & 0xFF;
+                } else if(value & 0xFFFFFF00) {
+                    buffer[index++] = 0x02;
+                    buffer[index++] = (value >> 8) & 0xFF;
+                    buffer[index++] = value & 0xFF;
+                } else {
+                    buffer[index++] = 0x01;
+                    buffer[index++] = value & 0xFF;
+                }
+            }
+            break;
+
+        case DATA_TYPE_ENUM:       //枚举型
+            buffer[index++] = 0x02;
+            buffer[index++] = 0x01;
+            buffer[index++] = (uint8_t)properties[property_index]->enumValue & 0xFF;
+            break;
+
+        case DATA_TYPE_STRING:     //字符串型
+            {
+                uint16_t strLength = strlen(properties[property_index]->stringValue);
+
+                buffer[index++] = 0x03;
+                if(strLength < 0x80)
+                {
+                    buffer[index++] = strLength & 0xFF;
+                }
+                else
+                {
+                    buffer[index++] = (strLength >> 8) | 0x80;
+                    buffer[index++] = strLength & 0xFF;
+                }
+                memcpy(&buffer[index], properties[property_index]->stringValue, strLength);
+                index+=strLength;
+                break;
+            }
+
+        case DATA_TYPE_BINARY:     //二进制型
+            {
+                uint16_t len = properties[property_index]->binaryValue.len;
+                buffer[index++] = DATA_TYPE_BINARY;
+                if(len < 0x80) {
+                    buffer[index++] = len & 0xFF;
+                } else {
+                    buffer[index++] = (len >> 8) | 0x80;
+                    buffer[index++] = len & 0xFF;
+                }
+                memcpy(&buffer[index], properties[property_index]->binaryValue.value, len);
+                index+=len;
+                break;
+            }
+
+        default:
+            break;
+    }
+    return index;
+}
+
+//组织单个数据点的数据内容
+static uint16_t intoyunFormSingleDatapoint(int property_index, uint8_t *buffer, uint16_t len)
+{
+    int32_t index = 0;
+
+    buffer[index++] = INTOYUN_DATAPOINT_DATA;
+    index += intoyunFormDataPointBinary(property_index, buffer+index);
+    return index;
+}
+
+// dpForm   false: 组织改变的数据点   true：组织全部的数据点
+//组织所有数据点的数据内容
+static uint16_t intoyunFormAllDatapoint(uint8_t *buffer, uint16_t len, bool dpForm)
+{
+    int32_t index = 0;
+
+    buffer[index++] = INTOYUN_DATAPOINT_DATA;
+    for (int i = 0; i < properties_count; i++)
+    {
+        //只允许下发  不上传
+        if (properties[i]->permission == DP_PERMISSION_DOWN_ONLY)
+        {
+            continue;
+        }
+
+        //系统默认dpID  不上传
+        if (properties[i]->dpID > 0xFF00)
+        {
+            continue;
+        }
+
+        if( dpForm || ((!dpForm) && properties[i]->change) )
+        {
+            index += intoyunFormDataPointBinary(i, (uint8_t *)buffer+index);
+        }
+    }
+    return index;
+}
+
+//串口发送数据
+static int intoyunTransmitData(uint8_t frameType,uint8_t port, const uint8_t *buffer, uint16_t len,uint16_t timeout)
+{
+    bool sendState = false;
+    uint32_t _timeout = timeout;
+    if(_timeout != 0){
+        if(_timeout < LORAWAN_SEND_TIMEOUT){
+            _timeout = LORAWAN_SEND_TIMEOUT;
+        }
+    }
+    sendState = ProtocolSendPlatformData(frameType,port,buffer,len,_timeout);
+    log_v("sendState =%d\r\n",sendState);
+    log_v("_timeout = %d\r\n",_timeout);
+    if(!sendState){//发送忙或者没有入网
+        loraSendStatus = LORA_SEND_FAIL;
+        return LORA_SEND_FAIL;
+    }else{
+        if(_timeout == 0){ //不阻塞 发送结果由事件方式返回
+            loraSendStatus = LORA_SENDING;
+            return LORA_SENDING; //发送中
+        }else{
+            uint32_t prevTime = millis();
+            loraSendResult = 0;
+            while(1){
+                intoyunLoop();
+                if(loraSendResult == 3){
+                    loraSendStatus = LORA_SEND_SUCCESS;
+                    return LORA_SEND_SUCCESS;
+                }else if(loraSendResult == 4){
+                    loraSendStatus = LORA_SEND_FAIL;
+                    return LORA_SEND_FAIL;
+                }
+                if(millis() - prevTime > _timeout*1000){
+                    loraSendStatus = LORA_SEND_FAIL;
+                    return LORA_SEND_FAIL;
+                }
+            }
+        }
+    }
+}
+
+//发送单个数据点的数据
+static int intoyunSendSingleDatapoint(const uint16_t dpID, bool confirmed, uint16_t timeout)
+{
+    uint8_t frameType = 0;
+    //发送时间间隔到
+    uint32_t current_millis = millis();
+    int32_t elapsed_millis = current_millis - properties[dpID]->runtime;
+    if (elapsed_millis < 0)
+    {
+        elapsed_millis =  0xFFFFFFFF - properties[dpID]->runtime + current_millis;
+    }
+
+    if (elapsed_millis >= g_datapoint_control.datapoint_transmit_lapse*1000)
+    {
+        uint8_t buffer[256];
+        uint16_t len;
+
+        len = intoyunFormSingleDatapoint(dpID, buffer, sizeof(buffer));
+        properties[dpID]->runtime = current_millis;
+        if(confirmed){
+            frameType = 0;
+        }else{
+            frameType = 1;
+        }
+        return intoyunTransmitData(frameType,2,buffer,len,timeout);
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+//发送所有数据点的数据
+static int intoyunSendDatapointAll(bool dpForm, bool confirmed, uint32_t timeout)
+{
+    uint8_t buffer[512];
+    uint16_t len;
+    uint8_t frameType = 0;
+
+    len = intoyunFormAllDatapoint(buffer, sizeof(buffer), dpForm);
+
+    log_v("send data length = %d\r\n",len);
+    log_v("send data:");
+    log_v_dump(buffer,len);
+
+    if(confirmed){
+        frameType = 0;
+    }else{
+        frameType = 1;
+    }
+    return intoyunTransmitData(frameType,2,buffer,len,timeout);
+}
+
+//发送用户自定义格式数据
+int intoyunSendCustomData(uint8_t type,uint8_t port, uint32_t timeout, const uint8_t *buffer, uint16_t len)
+{
+    uint8_t buf[256];
+    uint16_t index = len+1;
+    if(index > 256)
+    {
+        index = 256;
+    }
+
+    buf[0] = CUSTOMER_DEFINE_DATA;
+    memcpy(&buf[1],buffer,index-1);
+    return intoyunTransmitData(type,port,buf,index,timeout);
+}
+
+//手动发送数据点
+int intoyunSendAllDatapointManual(bool confirmed, uint32_t timeout)
+{
+    if(0 == intoyunGetPropertyCount()) {
+        return -1;
+    }
+
+    if(DP_TRANSMIT_MODE_AUTOMATIC == intoyunGetDatapointTransmitMode()) {
+        return -1;
+    }
+    return intoyunSendDatapointAll(true,confirmed,timeout);
+}
+
+//自动发送数据点
+void intoyunSendDatapointAutomatic(void)
+{
+    bool sendFlag = false;
+
+    if(0 == intoyunGetPropertyCount()) {
+        return;
+    }
+
+    if(DP_TRANSMIT_MODE_MANUAL == intoyunGetDatapointTransmitMode()) {
+        return;
+    }
+
+    //当数值发生变化
+    if(intoyunPropertyChanged()){
+        sendFlag = true;
+        intoyunSendDatapointAll(false,1,120);
+    }else{
+        //发送时间间隔到
+        uint32_t current_millis = millis();
+        int32_t elapsed_millis = current_millis - g_datapoint_control.runtime;
+        if (elapsed_millis < 0){
+            elapsed_millis =  0xFFFFFFFF - g_datapoint_control.runtime + current_millis;
+        }
+
+        //发送时间时间到
+        if ( elapsed_millis >= g_datapoint_control.datapoint_transmit_lapse*1000 ){
+            sendFlag = true;
+            intoyunSendDatapointAll(true,1,120);
+        }
+    }
+
+    if(sendFlag){
+        g_datapoint_control.runtime = millis();
+        intoyunPropertyChangeClear();
+    }
+}
+
+void intoyunDefineDatapointBool(const uint16_t dpID, dp_permission_t permission, const bool value)
+{
     if (-1 == intoyunDiscoverProperty(dpID))
     {
-        if(DP_POLICY_NONE == policy)
-        {
-            lapseTemp = 0;
-        }
-        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_BOOL,permission,policy,lapseTemp*1000);
+        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_BOOL,permission);
         properties[properties_count]->boolValue=value;
         properties_count++; // count the number of properties
     }
 }
 
-void intoyunDefineDatapointNumber(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value, dp_policy_t policy, const int lapse)
+void intoyunDefineDatapointNumber(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value)
 {
-    int lapseTemp = lapse;
-
     if (-1 == intoyunDiscoverProperty(dpID))
     {
-        if(DP_POLICY_NONE == policy)
-        {
-            lapseTemp = 0;
-        }
-
-        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_NUM,permission,policy,lapseTemp*1000);
+        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_NUM,permission);
 
         double defaultValue = value;
         if(defaultValue < minValue)
@@ -208,59 +612,38 @@ void intoyunDefineDatapointNumber(const uint16_t dpID, dp_permission_t permissio
     }
 }
 
-void intoyunDefineDatapointEnum(const uint16_t dpID, dp_permission_t permission, const int value, dp_policy_t policy, const int lapse)
+void intoyunDefineDatapointEnum(const uint16_t dpID, dp_permission_t permission, const int value)
 {
-    int lapseTemp;
-
     if (-1 == intoyunDiscoverProperty(dpID))
     {
-        if(DP_POLICY_NONE == policy)
-        {
-            lapseTemp = 0;
-        }
-
         int defaultValue = value;
         if(defaultValue < 0)
         {
             defaultValue = 0;
         }
 
-        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_ENUM,permission,policy,lapseTemp*1000);
+        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_ENUM,permission);
         properties[properties_count]->enumValue = defaultValue;
         properties_count++; // count the number of properties
     }
 }
 
-void intoyunDefineDatapointString(const uint16_t dpID, dp_permission_t permission, const char *value, dp_policy_t policy, const int lapse)
+void intoyunDefineDatapointString(const uint16_t dpID, dp_permission_t permission, const char *value)
 {
-    int lapseTemp;
-
     if (-1 == intoyunDiscoverProperty(dpID))
     {
-        if(DP_POLICY_NONE == policy)
-        {
-            lapseTemp = 0;
-        }
-
-        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_STRING,permission,policy,lapseTemp*1000);
+        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_STRING,permission);
         properties[properties_count]->stringValue = (char *)malloc(strlen(value)+1);
         strncpy(properties[properties_count]->stringValue,value,strlen(value)+1);
         properties_count++; // count the number of properties
     }
 }
 
-void intoyunDefineDatapointBinary(const uint16_t dpID, dp_permission_t permission, const uint8_t *value, const uint16_t len, dp_policy_t policy, const int lapse)
+void intoyunDefineDatapointBinary(const uint16_t dpID, dp_permission_t permission, const uint8_t *value, const uint16_t len)
 {
-    int lapseTemp;
-
     if (-1 == intoyunDiscoverProperty(dpID))
     {
-        if(DP_POLICY_NONE == policy)
-        {
-            lapseTemp = 0;
-        }
-
-        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_BINARY,permission,policy,lapseTemp*1000);
+        intoyunDatapointValueInit(properties_count,dpID,DATA_TYPE_BINARY,permission);
         properties[properties_count]->binaryValue.value = (uint8_t *)malloc(len);
         for(uint8_t i=0;i<len;i++)
         {
@@ -365,7 +748,7 @@ read_datapoint_result_t intoyunReadDatapointBinary(const uint16_t dpID, uint8_t 
 }
 
 // dpCtrlType   0: 平台控制写数据   1：用户写数据
-void intoyunPlatformWriteDatapointBool(const uint16_t dpID, bool value, bool dpCtrlType)
+static void intoyunPlatformWriteDatapointBool(const uint16_t dpID, bool value, bool dpCtrlType)
 {
     int index = intoyunDiscoverProperty(dpID);
     if(index == -1)
@@ -413,7 +796,7 @@ void intoyunWriteDatapointBool(const uint16_t dpID, bool value)
     intoyunPlatformWriteDatapointBool(dpID,value,true);
 }
 
-void intoyunPlatformWriteDatapointNumberInt32(const uint16_t dpID, int32_t value, bool dpCtrlType)
+static void intoyunPlatformWriteDatapointNumberInt32(const uint16_t dpID, int32_t value, bool dpCtrlType)
 {
     int index = intoyunDiscoverProperty(dpID);
     if(index == -1)
@@ -470,7 +853,7 @@ void intoyunWriteDatapointNumberInt32(const uint16_t dpID, int32_t value)
     intoyunPlatformWriteDatapointNumberInt32(dpID,value,true);
 }
 
-void intoyunPlatformWriteDatapointNumberDouble(const uint16_t dpID, double value, bool dpCtrlType)
+static void intoyunPlatformWriteDatapointNumberDouble(const uint16_t dpID, double value, bool dpCtrlType)
 {
     int index = intoyunDiscoverProperty(dpID);
     if(index == -1)
@@ -532,7 +915,7 @@ void intoyunWriteDatapointNumberDouble(const uint16_t dpID, double value)
     intoyunPlatformWriteDatapointNumberDouble(dpID,value,true);
 }
 
-void intoyunPlatformWriteDatapointEnum(const uint16_t dpID, int value, bool dpCtrlType)
+static void intoyunPlatformWriteDatapointEnum(const uint16_t dpID, int value, bool dpCtrlType)
 {
     int index = intoyunDiscoverProperty(dpID);
     if(index == -1)
@@ -579,7 +962,7 @@ void intoyunWriteDatapointEnum(const uint16_t dpID, int value)
     intoyunPlatformWriteDatapointEnum(dpID,value,true);
 }
 
-void intoyunPlatformWriteDatapointString(const uint16_t dpID, const char *value, bool dpCtrlType)
+static void intoyunPlatformWriteDatapointString(const uint16_t dpID, const char *value, bool dpCtrlType)
 {
     int index = intoyunDiscoverProperty(dpID);
     if(index == -1)
@@ -627,7 +1010,7 @@ void intoyunWriteDatapointString(const uint16_t dpID, const char *value)
     intoyunPlatformWriteDatapointString(dpID,value,true);
 }
 
-void intoyunPlatformWriteDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16_t len, bool dpCtrlType)
+static void intoyunPlatformWriteDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16_t len, bool dpCtrlType)
 {
     int index = intoyunDiscoverProperty(dpID);
     if(index == -1)
@@ -703,7 +1086,7 @@ int intoyunSendDatapointBool(const uint16_t dpID, bool value, bool confirmed, ui
     }
 
     //数值未发生变化
-    if (!properties[index]->change && properties[index]->policy == DP_POLICY_NONE)
+    if (!properties[index]->change)
     {
         return -1;
     }
@@ -733,7 +1116,7 @@ int intoyunSendDatapointNumberInt32(const uint16_t dpID, int32_t value, bool con
     }
 
     //数值未发生变化
-    if (!properties[index]->change && properties[index]->policy == DP_POLICY_NONE)
+    if (!properties[index]->change)
     {
         return -1;
     }
@@ -764,7 +1147,7 @@ int intoyunSendDatapointNumberDouble(const uint16_t dpID, double value, bool con
     }
 
     //数值未发生变化
-    if (!properties[index]->change && properties[index]->policy == DP_POLICY_NONE)
+    if (!properties[index]->change)
     {
         return -1;
     }
@@ -796,7 +1179,7 @@ int intoyunSendDatapointEnum(const uint16_t dpID, int value, bool confirmed, uin
     }
 
     //数值未发生变化
-    if (!properties[index]->change && properties[index]->policy == DP_POLICY_NONE)
+    if (!properties[index]->change)
     {
         return -1;
     }
@@ -828,7 +1211,7 @@ int intoyunSendDatapointString(const uint16_t dpID, const char *value, bool conf
     }
 
     //数值未发生变化
-    if (!properties[index]->change && properties[index]->policy == DP_POLICY_NONE)
+    if (!properties[index]->change)
     {
         return -1;
     }
@@ -860,7 +1243,7 @@ int intoyunSendDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16
     }
 
     //数值未发生变化
-    if (!properties[index]->change && properties[index]->policy == DP_POLICY_NONE)
+    if (!properties[index]->change)
     {
         return -1;
     }
@@ -868,6 +1251,7 @@ int intoyunSendDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16
     return intoyunSendSingleDatapoint(index,confirmed,timeout);
 }
 
+//解析数据点
 void intoyunParseReceiveDatapoints(const uint8_t *payload, uint32_t len, uint8_t *customData)
 {
     log_v("lorawan receive platform data length = %d\r\n",len);
@@ -1035,330 +1419,8 @@ void intoyunParseReceiveDatapoints(const uint8_t *payload, uint32_t len, uint8_t
     }
 }
 
-//组织数据点数据
-static uint16_t intoyunFormDataPointBinary(int property_index, uint8_t* buffer)
-{
-    int32_t index = 0;
 
-    if(properties[property_index]->dpID < 0x80)
-    {
-        buffer[index++] = properties[property_index]->dpID & 0xFF;
-    }
-    else
-    {
-        buffer[index++] = (properties[property_index]->dpID >> 8) | 0x80;
-        buffer[index++] = properties[property_index]->dpID & 0xFF;
-    }
-
-    switch(properties[property_index]->dataType)
-    {
-        case DATA_TYPE_BOOL:       //bool型
-            buffer[index++] = 0x00;  //类型
-            buffer[index++] = 0x01;  //长度
-            buffer[index++] = (bool)(properties[property_index]->boolValue);
-            break;
-
-        case DATA_TYPE_NUM:        //数值型 int型
-            {
-                buffer[index++] = 0x01;
-                int32_t value;
-                if(properties[property_index]->numberProperty.resolution == 0)
-                {
-                    value = (int32_t)properties[property_index]->numberIntValue;
-                }
-                else
-                {
-                    value = (properties[property_index]->numberDoubleValue - properties[property_index]->numberProperty.minValue) \
-                        * _pow(10, properties[property_index]->numberProperty.resolution);
-                }
-
-                if(value & 0xFFFF0000) {
-                    buffer[index++] = 0x04;
-                    buffer[index++] = (value >> 24) & 0xFF;
-                    buffer[index++] = (value >> 16) & 0xFF;
-                    buffer[index++] = (value >> 8) & 0xFF;
-                    buffer[index++] = value & 0xFF;
-                } else if(value & 0xFFFFFF00) {
-                    buffer[index++] = 0x02;
-                    buffer[index++] = (value >> 8) & 0xFF;
-                    buffer[index++] = value & 0xFF;
-                } else {
-                    buffer[index++] = 0x01;
-                    buffer[index++] = value & 0xFF;
-                }
-            }
-            break;
-
-        case DATA_TYPE_ENUM:       //枚举型
-            buffer[index++] = 0x02;
-            buffer[index++] = 0x01;
-            buffer[index++] = (uint8_t)properties[property_index]->enumValue & 0xFF;
-            break;
-
-        case DATA_TYPE_STRING:     //字符串型
-            {
-                uint16_t strLength = strlen(properties[property_index]->stringValue);
-
-                buffer[index++] = 0x03;
-                if(strLength < 0x80)
-                {
-                    buffer[index++] = strLength & 0xFF;
-                }
-                else
-                {
-                    buffer[index++] = (strLength >> 8) | 0x80;
-                    buffer[index++] = strLength & 0xFF;
-                }
-                memcpy(&buffer[index], properties[property_index]->stringValue, strLength);
-                index+=strLength;
-                break;
-            }
-
-        case DATA_TYPE_BINARY:     //二进制型
-            {
-                uint16_t len = properties[property_index]->binaryValue.len;
-                buffer[index++] = DATA_TYPE_BINARY;
-                if(len < 0x80) {
-                    buffer[index++] = len & 0xFF;
-                } else {
-                    buffer[index++] = (len >> 8) | 0x80;
-                    buffer[index++] = len & 0xFF;
-                }
-                memcpy(&buffer[index], properties[property_index]->binaryValue.value, len);
-                index+=len;
-                break;
-            }
-
-        default:
-            break;
-    }
-    return index;
-}
-
-//组织单个数据点的数据
-static uint16_t intoyunFormSingleDatapoint(int property_index, uint8_t *buffer, uint16_t len)
-{
-    int32_t index = 0;
-
-    buffer[index++] = INTOYUN_DATAPOINT_DATA;
-    index += intoyunFormDataPointBinary(property_index, buffer+index);
-    return index;
-}
-
-// dpForm   false: 组织改变的数据点   true：组织全部的数据点
-//组织所有数据点的数据
-static uint16_t intoyunFormAllDatapoint(uint8_t *buffer, uint16_t len, bool dpForm)
-{
-    int32_t index = 0;
-
-    buffer[index++] = INTOYUN_DATAPOINT_DATA;
-    for (int i = 0; i < properties_count; i++)
-    {
-        //只允许下发  不上传
-        if (properties[i]->permission == DP_PERMISSION_DOWN_ONLY)
-        {
-            continue;
-        }
-
-        //系统默认dpID  不上传
-        if (properties[i]->dpID > 0xFF00)
-        {
-            continue;
-        }
-
-        if( dpForm || ((!dpForm) && properties[i]->change) )
-        {
-            index += intoyunFormDataPointBinary(i, (uint8_t *)buffer+index);
-        }
-    }
-    return index;
-}
-
-//发送单个数据点的数据
-int intoyunSendSingleDatapoint(const uint16_t dpID, bool confirmed, uint16_t timeout)
-{
-    uint8_t frameType = 0;
-    //发送时间间隔到
-    uint32_t current_millis = millis();
-    int32_t elapsed_millis = current_millis - properties[dpID]->runtime;
-    if (elapsed_millis < 0)
-    {
-        elapsed_millis =  0xFFFFFFFF - properties[dpID]->runtime + current_millis;
-    }
-
-    if (elapsed_millis >= properties[dpID]->lapse)
-    {
-        uint8_t buffer[256];
-        uint16_t len;
-
-        len = intoyunFormSingleDatapoint(dpID, buffer, sizeof(buffer));
-        properties[dpID]->runtime = current_millis;
-        if(confirmed){
-            frameType = 0;
-        }else{
-            frameType = 1;
-        }
-        return intoyunTransmitData(frameType,2,buffer,len,timeout);
-    }
-    else
-    {
-        return -1;
-    }
-}
-
-//发送所有数据点的数据
-int intoyunSendDatapointAll(bool dpForm, bool confirmed, uint32_t timeout)
-{
-    uint8_t buffer[512];
-    uint16_t len;
-    uint8_t frameType = 0;
-
-    len = intoyunFormAllDatapoint(buffer, sizeof(buffer), dpForm);
-
-    log_v("send data length = %d\r\n",len);
-    log_v("send data:");
-    log_v_dump(buffer,len);
-
-    if(confirmed){
-        frameType = 0;
-    }else{
-        frameType = 1;
-    }
-    return intoyunTransmitData(frameType,2,buffer,len,timeout);
-}
-
-int intoyunSendCustomData(uint8_t type,uint8_t port, uint32_t timeout, const uint8_t *buffer, uint16_t len)
-{
-    uint8_t buf[256];
-    uint16_t index = len+1;
-    if(index > 256)
-    {
-        index = 256;
-    }
-
-    buf[0] = CUSTOMER_DEFINE_DATA;
-    memcpy(&buf[1],buffer,index-1);
-    return intoyunTransmitData(type,port,buf,index,timeout);
-}
-
-//发送数据
-int intoyunTransmitData(uint8_t frameType,uint8_t port, const uint8_t *buffer, uint16_t len,uint16_t timeout)
-{
-    bool sendState = false;
-    uint32_t _timeout = timeout;
-    if(_timeout != 0){
-        if(_timeout < LORAWAN_SEND_TIMEOUT){
-            _timeout = LORAWAN_SEND_TIMEOUT;
-        }
-    }
-    sendState = ProtocolSendPlatformData(frameType,port,buffer,len,_timeout);
-    log_v("sendState =%d\r\n",sendState);
-    log_v("_timeout = %d\r\n",_timeout);
-    if(!sendState){//发送忙或者没有入网
-        loraSendStatus = LORA_SEND_FAIL;
-        return LORA_SEND_FAIL;
-    }else{
-        if(_timeout == 0){ //不阻塞 发送结果由事件方式返回
-            loraSendStatus = LORA_SENDING;
-            return LORA_SENDING; //发送中
-        }else{
-            uint32_t prevTime = millis();
-            loraSendResult = 0;
-            while(1){
-                intoyunLoop();
-                if(loraSendResult == 3){
-                    loraSendStatus = LORA_SEND_SUCCESS;
-                    return LORA_SEND_SUCCESS;
-                }else if(loraSendResult == 4){
-                    loraSendStatus = LORA_SEND_FAIL;
-                    return LORA_SEND_FAIL;
-                }
-                if(millis() - prevTime > _timeout*1000){
-                    loraSendStatus = LORA_SEND_FAIL;
-                    return LORA_SEND_FAIL;
-                }
-            }
-        }
-    }
-}
-
-int intoyunSendAllDatapointManual(bool confirmed, uint32_t timeout)
-{
-    if(0 == intoyunGetPropertyCount()) {
-        return -1;
-    }
-
-    if(DP_TRANSMIT_MODE_AUTOMATIC == intoyunGetDatapointTransmitMode()) {
-        return -1;
-    }
-    return intoyunSendDatapointAll(true,confirmed,timeout);
-    #if 0
-    //发送时间间隔到
-    uint32_t current_millis = millis();
-    int32_t elapsed_millis = current_millis - g_datapoint_control.runtime;
-    if (elapsed_millis < 0)
-    {
-        elapsed_millis =  0xFFFFFFFF - g_datapoint_control.runtime + current_millis;
-    }
-
-    //发送时间时间到
-    if ( elapsed_millis >= g_datapoint_control.datapoint_transmit_lapse*1000 )
-    {
-        log_v("start send datapoint\r\n");
-
-        g_datapoint_control.runtime = millis();
-        intoyunPropertyChangeClear();
-
-        return intoyunSendDatapointAll(true,type,timeout);
-    }else{
-        return -1;
-    }
-    #endif
-}
-
-void intoyunSendDatapointAutomatic(void)
-{
-    bool sendFlag = false;
-
-    if(0 == intoyunGetPropertyCount()) {
-        return;
-    }
-
-    if(DP_TRANSMIT_MODE_MANUAL == intoyunGetDatapointTransmitMode()) {
-        return;
-    }
-
-    //当数值发生变化
-    if(intoyunPropertyChanged())
-    {
-        sendFlag = true;
-        intoyunSendDatapointAll(false,1,120);
-    }
-    else
-    {
-        //发送时间间隔到
-        uint32_t current_millis = millis();
-        int32_t elapsed_millis = current_millis - g_datapoint_control.runtime;
-        if (elapsed_millis < 0)
-        {
-            elapsed_millis =  0xFFFFFFFF - g_datapoint_control.runtime + current_millis;
-        }
-
-        //发送时间时间到
-        if ( elapsed_millis >= g_datapoint_control.datapoint_transmit_lapse*1000 )
-        {
-            sendFlag = true;
-            intoyunSendDatapointAll(true,1,120);
-        }
-    }
-
-    if(sendFlag)
-    {
-        g_datapoint_control.runtime = millis();
-        intoyunPropertyChangeClear();
-    }
-}
-
+//LoRaWan API
 int intoyunSendConfirmed(uint8_t port, uint8_t *buffer, uint16_t len, uint16_t timeout)
 {
     return intoyunTransmitData(0,port,buffer,len,timeout);
@@ -1376,63 +1438,18 @@ int8_t intoyunQueryMacSendStatus(void)
 
 uint16_t intoyunMacReceive(uint8_t *buffer, uint16_t length, int *rssi)
 {
+    uint16_t size = 0;
     if(loraBuffer.available){
         loraBuffer.available = false;
+        if(length < loraBuffer.bufferSize){
+            size = length;
+        }else{
+            size = loraBuffer.bufferSize;
+        }
         *rssi = loraBuffer.rssi;
-        memcpy(buffer, loraBuffer.buffer, loraBuffer.bufferSize);
-        return loraBuffer.bufferSize;
-    }else{
-        return 0;
+        memcpy(buffer, loraBuffer.buffer, size);
     }
-}
-
-bool intoyunExecuteRestart(void)
-{
-    return ProtocolExecuteRestart();
-}
-
-bool intoyunExecuteRestore(void)
-{
-    return ProtocolExecuteRestore();
-}
-
-bool intoyunSetupSystemSleep(uint32_t timeout)
-{
-    return ProtocolSetupSystemSleep(timeout);
-}
-
-bool intoyunExecuteDFU(void)
-{
-    return ProtocolExecuteDFU();
-}
-
-void intoyunQueryInfo(char *moduleVersion, char *moduleType, char *deviceId, uint8_t *at_mode)
-{
-    device_info_t info;
-    ProtocolQueryInfo(&info);
-
-    log_v("moduleVer = %s\r\n",info.module_version);
-    log_v("moduleType = %s\r\n",info.module_type);
-    log_v("deviceId = %s\r\n",info.device_id);
-    log_v("atmode = %d\r\n",info.at_mode);
-
-    strncpy(moduleVersion,info.module_version,sizeof(info.module_version));
-    strncpy(moduleType,info.module_type,sizeof(info.module_type));
-    strncpy(deviceId,info.device_id,sizeof(info.device_id));
-    *at_mode = info.at_mode;
-}
-
-void intoyunSetupDevice(char *productId, char *hardVer, char *softVer)
-{
-    ProtocolSetupDevice(productId,hardVer,softVer);
-}
-
-bool intoyunSetupProtocol(uint8_t mode)
-{
-    if(mode > 2){
-        return false;
-    }
-    return ProtocolSetupProtocolMode(mode);
+    return size;
 }
 
 int8_t intoyunQueryMacClassType(void)
@@ -1443,68 +1460,6 @@ int8_t intoyunQueryMacClassType(void)
 bool intoyunSetupMacClassType(uint8_t type)
 {
     return ProtocolSetupMacClassType(type);
-}
-
-int intoyunExecuteMacJoin(uint8_t type, uint32_t timeout)
-{
-    if(type > 3){
-        return false;
-    }
-    int joinState;
-    uint32_t _timeout = timeout;
-    if(_timeout != 0){
-        if(_timeout < LORAWAN_JOIN_TIMEOUT){
-            _timeout = LORAWAN_JOIN_TIMEOUT;
-        }
-    }
-
-    joinState = ProtocolExecuteMacJoin(type, _timeout);
-    log_v("joinState = %d\r\n",joinState);
-    if(joinState != 4){//断开连接
-        lorawanJoinStatus = LORAWAN_JOIN_FAIL;
-        return lorawanJoinStatus;
-    }else {//入网中
-        if(_timeout == 0){//退出 入网状态由事件返回
-            lorawanJoinStatus = LORAWAN_JOINING;
-            return lorawanJoinStatus;
-        }else{
-            uint32_t prevTime = millis();
-            loraSendResult = 0;
-            while(1){
-                intoyunLoop();
-                if(loraSendResult == 1){
-                    lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
-                    return lorawanJoinStatus;
-                }else if(loraSendResult == 2){
-                    lorawanJoinStatus = LORAWAN_JOIN_FAIL;
-                    return lorawanJoinStatus;
-                }
-                if(millis() - prevTime > _timeout*1000){
-                    lorawanJoinStatus = LORAWAN_JOIN_FAIL;
-                    return lorawanJoinStatus;
-                }
-            }
-        }
-    }
-}
-
-int intoyunQueryConnected(void)
-{
-    return lorawanJoinStatus;
-}
-
-void intoyunExecuteDisconnect(void)
-{
-    ProtocolExecuteMacJoin(1, 0);
-}
-
-bool intoyunQueryDisconnected(void)
-{
-    if(lorawanJoinStatus == -1){ //已断开连接
-        return true;
-    }else{
-        return false;
-    }
 }
 
 bool intoyunQueryMacDeviceAddr(char *devAddr)
@@ -1751,6 +1706,7 @@ int intoyunQueryMacDownlinkCount(void)
 }
 
 
+//LoRa API
 int8_t intoyunQueryRadioSendStatus(void)
 {
     return loraSendStatus;
@@ -1763,14 +1719,18 @@ bool intoyunSetupRadioRx(uint32_t rxTimeout)
 
 uint16_t intoyunRadioRx(uint8_t *buffer, uint16_t length, int *rssi)
 {
+    uint16_t size = 0;
     if(loraBuffer.available){
         loraBuffer.available = false;
+        if(length < loraBuffer.bufferSize){
+            size = length;
+        }else{
+            size = loraBuffer.bufferSize;
+        }
         *rssi = loraBuffer.rssi;
-        memcpy(buffer, loraBuffer.buffer, loraBuffer.bufferSize);
-        return loraBuffer.bufferSize;
-    }else{
-        return 0;
+        memcpy(buffer, loraBuffer.buffer, size);
     }
+    return size;
 }
 
 bool intoyunSetupRadioFreq(uint32_t freq)

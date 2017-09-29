@@ -51,11 +51,11 @@ typedef struct
     bool (*disconnected)(void); //查询lorawan是否已经断开连接
     //数据点相关接口
     //定义数据点
-    void (*defineDatapointBool)(const uint16_t dpID, dp_permission_t permission, const bool value, dp_policy_t policy, const int lapse);
-    void (*defineDatapointNumber)(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value, dp_policy_t policy, const int lapse);
-    void (*defineDatapointEnum)(const uint16_t dpID, dp_permission_t permission, const int value, dp_policy_t policy, const int lapse);
-    void (*defineDatapointString)(const uint16_t dpID, dp_permission_t permission, const char *value, dp_policy_t policy, const int lapse);
-    void (*defineDatapointBinary)(const uint16_t dpID, dp_permission_t permission, const uint8_t *value, const uint16_t len, dp_policy_t policy, const int lapse);
+    void (*defineDatapointBool)(const uint16_t dpID, dp_permission_t permission, const bool value);
+    void (*defineDatapointNumber)(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value);
+    void (*defineDatapointEnum)(const uint16_t dpID, dp_permission_t permission, const int value);
+    void (*defineDatapointString)(const uint16_t dpID, dp_permission_t permission, const char *value);
+    void (*defineDatapointBinary)(const uint16_t dpID, dp_permission_t permission, const uint8_t *value, const uint16_t len);
     //读取数据点
     read_datapoint_result_t (*readDatapointBool)(const uint16_t dpID, bool *value);
     read_datapoint_result_t (*readDatapointNumberInt32)(const uint16_t dpID, int32_t *value);
