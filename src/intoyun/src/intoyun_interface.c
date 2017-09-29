@@ -95,6 +95,8 @@ const lorawan_t LoRaWan =
     intoyunQueryMacDatarate,
     intoyunSetupMacAdr,
     intoyunQueryMacAdr,
+    intoyunSetupMacDutyCyclePrescaler,
+    intoyunQueryMacDutyCyclePrescaler,
     intoyunSetupMacChannelFreq,
     intoyunQueryMacChannelFreq,
     intoyunSetupMacChannelDRRange,

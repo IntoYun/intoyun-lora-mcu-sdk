@@ -192,6 +192,8 @@ int8_t intoyunQueryMacDatarate(void);
 bool intoyunSetupMacDatarate(uint8_t datarate);
 bool intoyunQueryMacAdr(void);
 bool intoyunSetupMacAdr(bool enable);
+bool intoyunSetupMacDutyCyclePrescaler(uint16_t dutyCycle);
+uint16_t intoyunQueryMacDutyCyclePrescaler(void);
 uint32_t intoyunQueryMacChannelFreq(uint8_t channelId);
 bool intoyunSetupMacChannelFreq(uint8_t channelId, uint32_t freq);
 bool intoyunQueryMacChannelDRRange(uint8_t channelId, uint8_t *minDR, uint8_t *maxDR);

@@ -100,6 +100,8 @@ typedef struct
     int8_t (*getDatarate)(void);
     bool (*setAdrOn)(bool enable);
     bool (*getAdrOn)(void);
+    bool (*setDutyCyclePrescaler)(uint16_t dutyCycle);
+    uint16_t (*getDutyCyclePrescaler)(void);
     bool (*setChannelFreq)(uint8_t channelId, uint32_t freq);
     uint32_t (*getChannelFreq)(uint8_t channelId);
     bool (*setChannelDRRange)(uint8_t channelId, uint8_t minDR, uint8_t maxDR);

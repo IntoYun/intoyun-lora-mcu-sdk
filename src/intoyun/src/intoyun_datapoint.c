@@ -1568,6 +1568,16 @@ bool intoyunQueryMacAdr(void)
     }
 }
 
+bool intoyunSetupMacDutyCyclePrescaler(uint16_t dutyCycle)
+{
+    return ProtocolSetupMacDutyCyclePrescaler(dutyCycle);
+}
+
+uint16_t intoyunQueryMacDutyCyclePrescaler(void)
+{
+    return ProtocolQueryMacDutyCyclePrescaler();
+}
+
 uint32_t intoyunQueryMacChannelFreq(uint8_t channelId)
 {
     if(channelId > 15){

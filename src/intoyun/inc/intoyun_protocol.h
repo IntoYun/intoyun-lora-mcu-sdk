@@ -170,6 +170,8 @@ int8_t ProtocolQueryMacDatarate(void);
 bool ProtocolSetupMacDatarate(uint8_t datarate);
 int8_t ProtocolQueryMacAdr(void);
 bool ProtocolSetupMacAdr(uint8_t adrEnabled);
+bool ProtocolSetupMacDutyCyclePrescaler(uint16_t dutyCycle);
+uint16_t ProtocolQueryMacDutyCyclePrescaler(void);
 uint32_t ProtocolQueryMacChannelFreq(uint8_t channelId);
 bool ProtocolSetupMacChannelFreq(uint8_t channelId, uint32_t freq);
 bool ProtocolQueryMacChannelDRRange(uint8_t channelId, channel_params *drRange);
