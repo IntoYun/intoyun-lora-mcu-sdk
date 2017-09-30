@@ -110,6 +110,7 @@ void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi,
             //字符串显示
             if (RESULT_DATAPOINT_NEW == Cloud.readDatapointString(DPID_STRING_LCD_DISPLAY, dpStringLcdDisplay)){
                 log_v("datapoint string = %s\r\n",dpStringLcdDisplay);
+                memset(dpStringLcdDisplay,0,50);
             }
             //二进制数据
             if(RESULT_DATAPOINT_NEW == Cloud.readDatapointBinary(DPID_BINARY,dpBinaryVal,9)){

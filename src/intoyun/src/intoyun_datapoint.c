@@ -172,31 +172,20 @@ bool intoyunQueryDisconnected(void)
 }
 
 //datapoint API
-/*
-void intoyunSetDataAutoSend(uint32_t time)
-{
-    g_datapoint_control.datapoint_transmit_mode = DP_TRANSMIT_MODE_AUTOMATIC;
-    if(time < DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL)
-    {
-        g_datapoint_control.datapoint_transmit_lapse = DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL;
-        return;
-    }
-    g_datapoint_control.datapoint_transmit_lapse = time;
-}
-
 void intoyunDatapointControl(dp_transmit_mode_t mode, uint32_t lapse)
 {
     g_datapoint_control.datapoint_transmit_mode = mode;
-    if(DP_TRANSMIT_MODE_AUTOMATIC == g_datapoint_control.datapoint_transmit_mode)
-    {
+    if(DP_TRANSMIT_MODE_AUTOMATIC == g_datapoint_control.datapoint_transmit_mode){
         if(lapse < DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL){
         g_datapoint_control.datapoint_transmit_lapse = DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL;
         }else{
         g_datapoint_control.datapoint_transmit_lapse = lapse;
         }
+    }else{
+        g_datapoint_control.datapoint_transmit_lapse = 0;
+        g_datapoint_control.runtime = 0;
     }
 }
-*/
 
 //获取数据点发送模式
 static dp_transmit_mode_t intoyunGetDatapointTransmitMode(void)
@@ -268,7 +257,6 @@ static void intoyunDatapointValueInit(uint16_t count,uint16_t dpID,data_type_t d
     properties[count]->dpID       = dpID;
     properties[count]->dataType   = dataType;
     properties[count]->permission = permission;
-    properties[count]->runtime    = 0;
     properties[count]->readFlag   = RESULT_DATAPOINT_OLD;
 }
 
@@ -458,10 +446,10 @@ static int intoyunSendSingleDatapoint(const uint16_t dpID, bool confirmed, uint1
     uint8_t frameType = 0;
     //发送时间间隔到
     uint32_t current_millis = millis();
-    int32_t elapsed_millis = current_millis - properties[dpID]->runtime;
+    int32_t elapsed_millis = current_millis - g_datapoint_control.runtime;
     if (elapsed_millis < 0)
     {
-        elapsed_millis =  0xFFFFFFFF - properties[dpID]->runtime + current_millis;
+        elapsed_millis =  0xFFFFFFFF - g_datapoint_control.runtime + current_millis;
     }
 
     if (elapsed_millis >= g_datapoint_control.datapoint_transmit_lapse*1000)
@@ -470,7 +458,7 @@ static int intoyunSendSingleDatapoint(const uint16_t dpID, bool confirmed, uint1
         uint16_t len;
 
         len = intoyunFormSingleDatapoint(dpID, buffer, sizeof(buffer));
-        properties[dpID]->runtime = current_millis;
+        g_datapoint_control.runtime = current_millis;
         if(confirmed){
             frameType = 0;
         }else{
@@ -722,6 +710,10 @@ read_datapoint_result_t intoyunReadDatapointString(const uint16_t dpID, char *va
     for(uint16_t i=0;i<strlen(properties[index]->stringValue);i++)
     {
         value[i] = properties[index]->stringValue[i];
+    }
+    if(properties[index]->stringValue != NULL){
+        free(properties[index]->stringValue);
+        properties[index]->stringValue = NULL;
     }
     read_datapoint_result_t readResult = properties[index]->readFlag;
     properties[index]->readFlag = RESULT_DATAPOINT_OLD;
@@ -986,6 +978,10 @@ static void intoyunPlatformWriteDatapointString(const uint16_t dpID, const char 
             else
             {
                 properties[index]->readFlag = RESULT_DATAPOINT_NEW;
+            }
+            if(properties[index]->stringValue != NULL){
+                free(properties[index]->stringValue);
+                properties[index]->stringValue = NULL;
             }
             properties[index]->stringValue = (char *)malloc(strlen(value)+1);
             strncpy(properties[index]->stringValue,value,strlen(value)+1);

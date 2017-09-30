@@ -26,7 +26,7 @@
 #define PROPERTIES_MAX                            50 //数据点个数大小
 
 #define PIPE_MAX_SIZE                             256 //串口接收缓冲区大小
-#define DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL     20 //数据点自动发送时间间隔设置
+#define DATAPOINT_TRANSMIT_AUTOMATIC_INTERVAL     60 //数据点自动发送时间间隔设置
 
 #define CONFIG_NOASSERT
 
