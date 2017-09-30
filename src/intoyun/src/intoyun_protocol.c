@@ -983,13 +983,43 @@ bool ProtocolSetupMacAdr(uint8_t adrEnabled)
     return false;
 }
 
-int ProtocolQueryMacDutyCyclePrescalerCallback(int type, const char* buf, int len, int *dutyCycle)
+bool ProtocolSetupMacDutyCyclePrescaler(uint16_t dutyCycle)
 {
-    return 0;
+    if (parserInitDone)
+    {
+        ProtocolParserSendFormated("AT+MACDCYCLEPS=%d\r\n",dutyCycle);
+        if (RESP_OK == ProtocolParserWaitFinalResp(NULL, NULL,5000))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
-uint8_t ProtocolQueryMacDutyCyclePrescaler(void)
+int ProtocolQueryMacDutyCyclePrescalerCallback(int type, const char* buf, int len, int *dutyCycle)
 {
+    if (dutyCycle && (type == TYPE_PLUS))
+    {
+        int macDutyCycle;
+        if (sscanf(buf, "+MACDCYCLEPS:%d\r\n", &macDutyCycle) == 1)
+        {
+            *dutyCycle = macDutyCycle;
+        }
+    }
+    return WAIT;
+}
+
+uint16_t ProtocolQueryMacDutyCyclePrescaler(void)
+{
+    int dutyCycle;
+    if (parserInitDone)
+    {
+        ProtocolParserSendFormated("AT+MACDCYCLEPS?\r\n");
+        if (RESP_OK == ProtocolParserWaitFinalResp((callbackPtr)ProtocolQueryMacDutyCyclePrescalerCallback, &dutyCycle,5000))
+        {
+            return (uint16_t)dutyCycle;
+        }
+    }
     return 0;
 }
 
@@ -1031,21 +1061,6 @@ bool ProtocolSetupMacChannelFreq(uint8_t channelId, uint32_t freq)
         }
     }
     return false;
-}
-
-int ProtocolQueryMacChannelDutyCycleCallback(int type, const char* buf, int len, int *dutyCycle)
-{
-    return 0;
-}
-
-uint8_t ProtocolQueryMacChannelDutyCycle(void)
-{
-    return 0;
-}
-
-bool ProtocolSetupMacChannelDutyCycle(uint8_t dutyCycle)
-{
-    return true;
 }
 
 int ProtocolQueryMacChannelDRRangeCallback(int type, const char* buf, int len, channel_params *drRange)

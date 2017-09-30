@@ -93,9 +93,6 @@ typedef struct {
     uint16_t dpID;
     data_type_t dataType;
     dp_permission_t permission;
-    dp_policy_t policy;
-    long lapse;
-    long runtime;
     bool change; //数据是否改变 true 数据有变化
     read_datapoint_result_t readFlag;
     number_property_t numberProperty;
@@ -117,19 +114,38 @@ typedef struct {
 
 typedef void (*event_handler_t)(uint8_t event, uint8_t param, int rssi, uint8_t *data, uint32_t len);
 
+//System API
 void intoyunInit(void);
-void intoyunSetEventCallback(event_handler_t loraHandler);
-void intoyunPutPipe(uint8_t value);
 void intoyunLoop(void);
+void intoyunSetEventCallback(event_handler_t loraHandler);
+void intoyunQueryInfo(char *moduleVersion, char *moduleType, char *deviceId, uint8_t *at_mode);
+void intoyunSetupDevice(char *productId, char *hardVer, char *softVer);
+bool intoyunSetupProtocol(uint8_t mode);
+bool intoyunExecuteRestart(void);
+bool intoyunExecuteRestore(void);
+bool intoyunSetupSystemSleep(uint32_t timeout);
+bool intoyunExecuteDFU(void);
+void intoyunPutPipe(uint8_t value);
+
+//Cloud API
+int intoyunExecuteMacJoin(uint8_t type, uint32_t timeout);
+int intoyunQueryConnected(void);
+void intoyunExecuteDisconnect(void);
+bool intoyunQueryDisconnected(void);
+
 void intoyunDatapointControl(dp_transmit_mode_t mode, uint32_t lapse);
-int intoyunDiscoverProperty(const uint16_t dpID);
+int intoyunSendCustomData(uint8_t type,uint8_t port, uint32_t timeout, const uint8_t *buffer, uint16_t len);
+int intoyunSendAllDatapointManual(bool confirmed, uint32_t timeout);
+void intoyunSendDatapointAutomatic(void);
 
-void intoyunDefineDatapointBool(const uint16_t dpID, dp_permission_t permission, const bool value, dp_policy_t policy, const int lapse);
-void intoyunDefineDatapointNumber(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value, dp_policy_t policy, const int lapse);
-void intoyunDefineDatapointEnum(const uint16_t dpID, dp_permission_t permission, const int value, dp_policy_t policy, const int lapse);
-void intoyunDefineDatapointString(const uint16_t dpID, dp_permission_t permission, const char *value, dp_policy_t policy, const int lapse);
-void intoyunDefineDatapointBinary(const uint16_t dpID, dp_permission_t permission, const uint8_t *value, const uint16_t len, dp_policy_t policy, const int lapse);
+//定义数据点
+void intoyunDefineDatapointBool(const uint16_t dpID, dp_permission_t permission, const bool value);
+void intoyunDefineDatapointNumber(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value);
+void intoyunDefineDatapointEnum(const uint16_t dpID, dp_permission_t permission, const int value);
+void intoyunDefineDatapointString(const uint16_t dpID, dp_permission_t permission, const char *value);
+void intoyunDefineDatapointBinary(const uint16_t dpID, dp_permission_t permission, const uint8_t *value, const uint16_t len);
 
+//读取数据点
 read_datapoint_result_t intoyunReadDatapointBool(const uint16_t dpID, bool *value);
 read_datapoint_result_t intoyunReadDatapointNumberInt32(const uint16_t dpID, int32_t *value);
 read_datapoint_result_t intoyunReadDatapointNumberDouble(const uint16_t dpID, double *value);
@@ -137,6 +153,7 @@ read_datapoint_result_t intoyunReadDatapointEnum(const uint16_t dpID, int *value
 read_datapoint_result_t intoyunReadDatapointString(const uint16_t dpID, char *value);
 read_datapoint_result_t intoyunReadDatapointBinary(const uint16_t dpID, uint8_t *value, uint16_t len);
 
+//写入数据点值
 void intoyunWriteDatapointBool(const uint16_t dpID, bool value);
 void intoyunWriteDatapointNumberInt32(const uint16_t dpID, int32_t value);
 void intoyunWriteDatapointNumberDouble(const uint16_t dpID, double value);
@@ -144,6 +161,7 @@ void intoyunWriteDatapointEnum(const uint16_t dpID, int value);
 void intoyunWriteDatapointString(const uint16_t dpID, const char *value);
 void intoyunWriteDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16_t len);
 
+//发送数据点
 int intoyunSendDatapointBool(const uint16_t dpID, bool value,bool confirmed, uint16_t timeout);
 int intoyunSendDatapointNumberInt32(const uint16_t dpID, int32_t value,bool confirmed, uint16_t timeout);
 int intoyunSendDatapointNumberDouble(const uint16_t dpID, double value,bool confirmed, uint16_t timeout);
@@ -151,37 +169,17 @@ int intoyunSendDatapointEnum(const uint16_t dpID, int value,bool confirmed, uint
 int intoyunSendDatapointString(const uint16_t dpID, const char *value,bool confirmed, uint16_t timeout);
 int intoyunSendDatapointBinary(const uint16_t dpID, const uint8_t *value, uint16_t len,bool confirmed, uint16_t timeout);
 
+//解析数据点
 void intoyunParseReceiveDatapoints(const uint8_t *payload, uint32_t len, uint8_t *customData);
-static uint16_t intoyunFormDataPointBinary(int property_index, uint8_t *buffer);
-static uint16_t intoyunFormSingleDatapoint(int property_index, uint8_t *buffer, uint16_t len);
-static uint16_t intoyunFormAllDatapoint(uint8_t *buffer, uint16_t len, bool dpForm);
-int intoyunSendSingleDatapoint(const uint16_t dpID, bool confirmed, uint16_t timeout);
-int intoyunSendDatapointAll(bool dpForm,bool confirmed,uint32_t timeout);
-int intoyunSendCustomData(uint8_t type,uint8_t port, uint32_t timeout, const uint8_t *buffer, uint16_t len);
 
-int intoyunTransmitData(uint8_t type,uint8_t port, const uint8_t *buffer, uint16_t len,uint16_t timeout);
-
-int intoyunSendAllDatapointManual(bool confirmed, uint32_t timeout);
-void intoyunSendDatapointAutomatic(void);
-
-int intoyunSendConfirmed(uint8_t port, uint8_t *buffer, uint16_t len, uint16_t timeout);    //带确认发送   true:发送成功 false:发送失败
-int intoyunSendUnconfirmed(uint8_t port, uint8_t *buffer, uint16_t len, uint16_t timeout);  //不带确认发送   true:发送成功 false:发送失败
+//LoRaWan API
+int intoyunSendConfirmed(uint8_t port, uint8_t *buffer, uint16_t len, uint16_t timeout);    //发送确认帧
+int intoyunSendUnconfirmed(uint8_t port, uint8_t *buffer, uint16_t len, uint16_t timeout);  //发送无需确认帧
 int8_t intoyunQueryMacSendStatus(void);
-uint16_t intoyunMacReceive(uint8_t *buffer, uint16_t length, int *rssi);    //返回接收数据
-bool intoyunExecuteRestart(void);
-bool intoyunExecuteRestore(void);
-bool intoyunSetupSystemSleep(uint32_t timeout);
-bool intoyunExecuteDFU(void);
-void intoyunQueryInfo(char *moduleVersion, char *moduleType, char *deviceId, uint8_t *at_mode);
-void intoyunSetupDevice(char *productId, char *hardVer, char *softVer);
+uint16_t intoyunMacReceive(uint8_t *buffer, uint16_t length, int *rssi); //返回接收数据
 bool intoyunQueryStatus(uint8_t *netStatus, uint8_t *sendStatus);
-bool intoyunSetupProtocol(uint8_t mode);
 int8_t intoyunQueryMacClassType(void);
 bool intoyunSetupMacClassType(uint8_t type);
-int intoyunExecuteMacJoin(uint8_t type, uint32_t timeout);
-int intoyunQueryConnected(void);
-void intoyunExecuteDisconnect(void);
-bool intoyunQueryDisconnected(void);
 bool intoyunQueryMacDeviceAddr(char *devAddr);
 bool intoyunQueryMacDeviceEui(char *devEui);
 bool intoyunQueryMacAppEui(char *appEui);
@@ -192,6 +190,8 @@ int8_t intoyunQueryMacDatarate(void);
 bool intoyunSetupMacDatarate(uint8_t datarate);
 bool intoyunQueryMacAdr(void);
 bool intoyunSetupMacAdr(bool enable);
+bool intoyunSetupMacDutyCyclePrescaler(uint16_t dutyCycle);
+uint16_t intoyunQueryMacDutyCyclePrescaler(void);
 uint32_t intoyunQueryMacChannelFreq(uint8_t channelId);
 bool intoyunSetupMacChannelFreq(uint8_t channelId, uint32_t freq);
 bool intoyunQueryMacChannelDRRange(uint8_t channelId, uint8_t *minDR, uint8_t *maxDR);
@@ -217,6 +217,7 @@ int intoyunQueryMacUplinkCount(void);
 bool intoyunSetupMacDownlinkCount(uint32_t count);
 int intoyunQueryMacDownlinkCount(void);
 
+//LoRa API
 int8_t intoyunQueryRadioSendStatus(void);
 bool intoyunSetupRadioRx(uint32_t rxTimeout);
 uint16_t intoyunRadioRx(uint8_t *buffer, uint16_t length, int *rssi); //获取接收到的数据
