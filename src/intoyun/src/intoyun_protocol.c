@@ -557,7 +557,7 @@ bool ProtocolParserInit(void)
             return false; //串口不通 通讯失败
         }
 
-        /* ProtocolParserSendFormated("ATE0\r\n"); //关闭回显 */
+        ProtocolParserSendFormated("ATE0\r\n"); //关闭回显
         log_v("protocol parser init done\r\n");
         parserInitDone = true;
 
