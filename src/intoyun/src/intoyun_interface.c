@@ -197,3 +197,26 @@ uint32_t millis(void)
 {
     return HAL_Millis();
 }
+
+uint32_t timerGetId(void)
+{
+    return millis();
+}
+
+bool timerIsEnd(uint32_t timerID, uint32_t time)
+{
+    uint32_t current_millis = millis();
+    uint32_t elapsed_millis = 0;
+
+    //Check for wrapping
+    if (current_millis < timerID){
+        elapsed_millis =  UINT_MAX-timerID + current_millis;
+    } else {
+        elapsed_millis = current_millis - timerID;
+    }
+
+    if (elapsed_millis >= time){
+        return true;
+    }
+    return false;
+}

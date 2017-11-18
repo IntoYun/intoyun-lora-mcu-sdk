@@ -178,6 +178,8 @@ typedef struct
 
 void delay(uint32_t ms);
 uint32_t millis(void);
+uint32_t timerGetId(void);
+bool timerIsEnd(uint32_t timerID, uint32_t time);
 
 extern const system_t System;
 extern const cloud_t Cloud;
