@@ -172,15 +172,13 @@ void userInit(void)
     System.setEventCallback(LoRaWanEventProcess);
     delay(10);
     //设置速率
-    LoRaWan.setDatarate(3);
+    LoRaWan.setDatarate(DR_3);
     //设置通道2的速率范围
-    LoRaWan.setChannelDRRange(2,3,3);
-    //设置接收窗口2的速率和频率
-    LoRaWan.setRX2Params(3,434665000);
+    LoRaWan.setChannelDRRange(2,DR_3,DR_3);
     //关闭通道0
-    LoRaWan.setChannelStatus(0,0);
+    LoRaWan.setChannelStatus(0,false);
     //关闭通道1
-    LoRaWan.setChannelStatus(1,0);
+    LoRaWan.setChannelStatus(1,false);
     //OTAA入网 阻塞运行 超时时间为400s
     if(Cloud.connect(3,400) == 0){
         log_v("join ok\r\n");

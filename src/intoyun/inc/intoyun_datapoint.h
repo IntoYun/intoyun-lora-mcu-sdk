@@ -41,6 +41,22 @@
 #define LORAWAN_SEND_TIMEOUT    120
 #define LORA_RADIO_SEND_TIMEOUT 3000
 
+//速率
+#define DR_0        0  // SF12 - BW125
+#define DR_1        1  // SF11 - BW125
+#define DR_2        2  // SF10 - BW125
+#define DR_3        3  // SF9  - BW125
+#define DR_4        4  // SF8  - BW125
+#define DR_5        5  // SF7  - BW125
+
+typedef enum eDeviceClass
+{
+    CLASS_A,
+    CLASS_B,
+    CLASS_C,
+}DeviceClass_t;
+
+
 // transmit
 typedef enum {
     DP_TRANSMIT_MODE_MANUAL = 0,       // 用户控制发送

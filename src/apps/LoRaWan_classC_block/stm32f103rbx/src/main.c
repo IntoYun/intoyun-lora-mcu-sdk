@@ -150,12 +150,11 @@ void userInit(void)
     System.setEventCallback(LoRaWanEventProcess);
     delay(10);
 
-    LoRaWan.setDatarate(3);
-    LoRaWan.setChannelDRRange(2,3,3);
-    LoRaWan.setRX2Params(3,434665000);
-    LoRaWan.setChannelStatus(0,0);
-    LoRaWan.setChannelStatus(1,0);
-    LoRaWan.setMacClassType(2); //设置为C类
+    LoRaWan.setDatarate(DR_3);
+    LoRaWan.setChannelDRRange(2,DR_3,DR_3);
+    LoRaWan.setChannelStatus(0,false);
+    LoRaWan.setChannelStatus(1,false);
+    LoRaWan.setMacClassType(CLASS_C); //设置为C类
 
     //OTAA入网
     if(Cloud.connect(3,400) == 0){
