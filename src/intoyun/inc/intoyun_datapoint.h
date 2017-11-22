@@ -56,6 +56,18 @@ typedef enum eDeviceClass
     CLASS_C,
 }DeviceClass_t;
 
+typedef enum
+{
+    JOIN_ABORT = 1,
+    JOIN_ABP   = 2,
+    JOIN_OTAA  = 3,
+}join_mode_t;
+
+typedef enum
+{
+    PROTOCOL_LORAWAN = 0,
+    PROTOCOL_P2P,
+}protocol_mode_t;
 
 // transmit
 typedef enum {

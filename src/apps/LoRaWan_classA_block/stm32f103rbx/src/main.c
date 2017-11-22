@@ -180,7 +180,7 @@ void userInit(void)
     //关闭通道1
     LoRaWan.setChannelStatus(1,false);
     //OTAA入网 阻塞运行 超时时间为400s
-    if(Cloud.connect(3,400) == 0){
+    if(Cloud.connect(JOIN_OTAA,400) == 0){
         log_v("join ok\r\n");
         deviceState = DEVICE_STATE_SEND;
     }else{

@@ -558,6 +558,7 @@ bool ProtocolParserInit(void)
         }
 
         ProtocolParserSendFormated("ATE0\r\n"); //关闭回显
+        delay(50);
         log_v("protocol parser init done\r\n");
         parserInitDone = true;
 

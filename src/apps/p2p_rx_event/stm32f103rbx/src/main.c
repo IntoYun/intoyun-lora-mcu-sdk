@@ -79,7 +79,7 @@ void userInit(void)
     System.setEventCallback(LoRaRadioEventProcess);
     delay(10);
     //不运行lorawan协议
-    if(!System.setProtocol(1))
+    if(!System.setProtocol(PROTOCOL_P2P))
     {
         log_v("exe mac pause fail\r\n");
     }

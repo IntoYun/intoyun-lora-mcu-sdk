@@ -185,7 +185,7 @@ void userInit(void)
     //关闭通道1
     LoRaWan.setChannelStatus(1,false);
     //OTAA入网 事件方式运行 其入网结果由LoRaWanEventProcess()给出
-    Cloud.connect(3,0);
+    Cloud.connect(JOIN_OTAA,0);
 }
 
 void userHandle(void)

@@ -27,7 +27,7 @@ property_conf *properties[PROPERTIES_MAX];
 int properties_count = 0;
 event_handler_t loraEventHandler = NULL;
 uint8_t loraSendResult = 0;
-int lorawanJoinStatus = 0; //0 连接平台 1 连接中 -1 未连接
+int lorawanJoinStatus = -1; //0 连接平台 1 连接中 -1 未连接
 int8_t loraSendStatus = 0; //数据发送状态 0 成功 1 发送中 -1 失败
 
 //初始化设置参数 手动发送 发送间隔时间  发送运行时间

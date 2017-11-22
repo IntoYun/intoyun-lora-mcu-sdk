@@ -164,7 +164,7 @@ void userInit(void)
     LoRaWan.setChannelStatus(1,false);
     LoRaWan.setMacClassType(CLASS_C); //设置为C类
     //OTAA入网
-    Cloud.connect(3,0);
+    Cloud.connect(JOIN_OTAA,0);
 }
 
 void userHandle(void)

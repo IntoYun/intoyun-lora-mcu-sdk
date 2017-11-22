@@ -157,7 +157,7 @@ void userInit(void)
     LoRaWan.setMacClassType(CLASS_C); //设置为C类
 
     //OTAA入网
-    if(Cloud.connect(3,400) == 0){
+    if(Cloud.connect(JOIN_OTAA,400) == 0){
         log_v("join ok\r\n");
         deviceState = DEVICE_STATE_SEND;
     }else{
