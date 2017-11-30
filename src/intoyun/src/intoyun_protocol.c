@@ -458,13 +458,13 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                         memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
 
                         if(loraEventHandler != NULL){
-                            loraEventHandler(event_lorawan_status,ep_lorawan_custom_data,rssi,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
+                            loraEventHandler(event_lorawan_status,ep_cloud_data_custom,rssi,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
                         }
                     }
                     else
                     {
                         if(loraEventHandler != NULL){
-                            loraEventHandler(event_lorawan_status,ep_lorawan_datapoint,rssi,NULL,0);
+                            loraEventHandler(event_lorawan_status,ep_cloud_data_datapoint,rssi,NULL,0);
                         }
                     }
                 }
@@ -477,7 +477,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                     memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
 
                     if(loraEventHandler != NULL){
-                        loraEventHandler(event_lora_radio_status,ep_lora_radio_rx_data,rssi,platformData+1,platformDataLen);
+                        loraEventHandler(event_lora_radio_status,ep_lora_radio_rx_done,rssi,platformData+1,platformDataLen);
                     }
                 }
             }
