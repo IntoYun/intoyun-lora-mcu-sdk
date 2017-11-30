@@ -1539,7 +1539,7 @@ uint32_t intoyunQueryMacChannelFreq(uint8_t channelId)
 
 bool intoyunSetupMacChannelFreq(uint8_t channelId, uint32_t freq)
 {
-    if(channelId > 15 || freq > 525000000 || freq < 432000000){
+    if(channelId > 15 || freq > 525000000 || freq < 137000000){
         return false;
     }
     return ProtocolSetupMacChannelFreq(channelId,freq);
@@ -1675,7 +1675,7 @@ bool intoyunQueryMacRX2Params(uint8_t *datarate, uint32_t *freq)
 
 bool intoyunSetupMacRX2Params(uint8_t datarate, uint32_t freq)
 {
-    if(freq > 525000000 || freq < 432000000 || datarate > 5){
+    if(freq > 525000000 || freq < 137000000 || datarate > 5){
         return false;
     }
     return ProtocolSetupMacRX2Params(datarate,freq);
@@ -1731,7 +1731,7 @@ uint16_t intoyunRadioRx(uint8_t *buffer, uint16_t length, int *rssi)
 
 bool intoyunSetupRadioFreq(uint32_t freq)
 {
-    if(freq > 525000000 || freq < 432000000)
+    if(freq > 525000000 || freq < 137000000)
     {
         return false;
     }
