@@ -41,8 +41,8 @@ typedef enum
     ep_lorawan_send_success     = 3,
     ep_lorawan_send_fail        = 4,
     ep_lorawan_module_wakeup    = 5,
-    ep_lorawan_datapoint        = 6,
-    ep_lorawan_custom_data      = 7,
+    ep_cloud_data_datapoint     = 6,
+    ep_cloud_data_custom        = 7,
 } lorawan_event_type_t;
 
 typedef enum
@@ -52,7 +52,7 @@ typedef enum
     ep_lora_radio_rx_timeout           = 4,
     ep_lora_radio_rx_error             = 5,
     ep_lora_radio_module_wakeup        = 6,
-    ep_lora_radio_rx_data              = 7,
+    ep_lora_radio_rx_done              = 7,
 }lora_radio_event_type_t;
 
 enum {

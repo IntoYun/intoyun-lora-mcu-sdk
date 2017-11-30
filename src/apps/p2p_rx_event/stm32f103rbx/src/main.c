@@ -54,7 +54,7 @@ void LoRaRadioEventProcess(uint8_t eventType,lora_radio_event_type_t event, int 
             log_v("radio system wakeup\r\n");
             break;
 
-        case ep_lora_radio_rx_data:
+        case ep_lora_radio_rx_done:
             log_v("radio rssi=%d\r\n",rssi);
             log_v("radio receive data len=%d\r\n",len);
             log_v("radio receive data : \r\n");

@@ -103,7 +103,7 @@ void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi,
             log_v("event lorawan system wakeup\r\n");
             break;
 
-        case ep_lorawan_datapoint: //处理平台数据
+        case ep_cloud_data_datapoint: //处理平台数据
             log_v("event lorawan receive platform datapoint\r\n");
             //灯泡控制
             if (RESULT_DATAPOINT_NEW == Cloud.readDatapointBool(DPID_BOOL_SWITCH, &dpBoolLightSwitch)){
@@ -147,7 +147,7 @@ void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi,
             }
             break;
 
-        case ep_lorawan_custom_data: //接受到透传数据
+        case ep_cloud_data_custom: //接受到透传数据
             log_v("event lorawan receive custom data\r\n");
             break;
 
