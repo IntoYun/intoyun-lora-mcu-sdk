@@ -29,10 +29,10 @@ void GPIO_Init(void)
 }
 
 //不运行lorawan协议
-void LoRaRadioEventProcess(uint8_t eventType,lora_radio_event_type_t event, int rssi, uint8_t *data, uint32_t len)
+void system_event_callback( system_event_t event, int param, uint8_t *data, uint16_t datalen)
 {
-    if(eventType == event_lora_radio_status){
-        switch(event)
+    if(event == event_lora_radio_status){
+        switch(param)
         {
         case ep_lora_radio_tx_done:
             log_v("radio tx done\r\n");
@@ -55,10 +55,9 @@ void LoRaRadioEventProcess(uint8_t eventType,lora_radio_event_type_t event, int 
             break;
 
         case ep_lora_radio_rx_done:
-            log_v("radio rssi=%d\r\n",rssi);
-            log_v("radio receive data len=%d\r\n",len);
+            log_v("radio receive data len=%d\r\n",datalen);
             log_v("radio receive data : \r\n");
-            for(uint8_t i=0;i<len;i++)
+            for(uint8_t i=0;i<datalen;i++)
             {
                 log_v("%d \r\n",data[i]);
             }
@@ -76,7 +75,7 @@ void userInit(void)
     GPIO_Init();
     log_v("lorawan slave mode\r\n");
     delay(100);
-    System.setEventCallback(LoRaRadioEventProcess);
+    System.setEventCallback(system_event_callback);
     delay(10);
     //不运行lorawan协议
     if(!System.setProtocol(PROTOCOL_P2P))

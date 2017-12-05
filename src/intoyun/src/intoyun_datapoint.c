@@ -1648,7 +1648,7 @@ uint8_t intoyunQueryMacSnr(void)
 
 int16_t intoyunQueryMacRssi(void)
 {
-    return ProtocolQueryMacRssi();
+    return loraBuffer.rssi;
 }
 
 uint16_t intoyunQueryMacRX1Delay(void)
@@ -1750,7 +1750,7 @@ uint8_t intoyunQueryRadioSnr(void)
 
 int16_t intoyunQueryRadioRssi(void)
 {
-    return ProtocolQueryRadioRssi();
+    return loraBuffer.rssi;
 }
 
 int intoyunQueryRadioFreq(void)

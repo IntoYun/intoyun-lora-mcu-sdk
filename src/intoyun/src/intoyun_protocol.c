@@ -412,37 +412,35 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
 
                 //log_v("cmd = %s\r\n",cmd);
 
-                lora_radio_event_type_t loraRadioEvent;
-                lorawan_event_type_t lorawanEvent;
-
+                system_event_param_t systemEventParam;
                 uint16_t platformDataLen;
                 uint8_t *platformData;
                 int rssi = 0;
 
-                if(sscanf(cmd,"RECRADIOEVT:%d\r\n",(int*)&loraRadioEvent) == 1)
+                if(sscanf(cmd,"RECRADIOEVT:%d\r\n",(int*)&systemEventParam) == 1)
                 {
-                    loraSendResult = loraRadioEvent;
+                    loraSendResult = systemEventParam;
                     if(loraEventHandler != NULL){
-                        loraEventHandler(event_lora_radio_status,loraRadioEvent,rssi,NULL,0);
+                        loraEventHandler(event_lora_radio_status, systemEventParam, NULL, 0);
                     }
                 }
-                else if(sscanf(cmd,"RECMACEVT:%d\r\n",(int*)&lorawanEvent) == 1)
+                else if(sscanf(cmd,"RECMACEVT:%d\r\n",(int*)&systemEventParam) == 1)
                 {
-                    loraSendResult = lorawanEvent;
-                    if(lorawanEvent == ep_lorawan_join_success){
+                    loraSendResult = systemEventParam;
+                    if(systemEventParam == ep_lorawan_join_success){
                         lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
-                    }else if(lorawanEvent == ep_lorawan_join_fail){
+                    }else if(systemEventParam == ep_lorawan_join_fail){
                         lorawanJoinStatus = LORAWAN_JOIN_FAIL;
                     }
 
-                    if(lorawanEvent == ep_lorawan_send_success){
+                    if(systemEventParam == ep_lorawan_send_success){
                         loraSendStatus = LORA_SEND_SUCCESS;
-                    }else if(lorawanEvent == ep_lorawan_send_fail){
+                    }else if(systemEventParam == ep_lorawan_send_fail){
                         loraSendStatus = LORA_SEND_FAIL;
                     }
 
                     if(loraEventHandler != NULL){
-                        loraEventHandler(event_lorawan_status,lorawanEvent,rssi,NULL,0);
+                        loraEventHandler(event_lorawan_status, systemEventParam, NULL, 0);
                     }
                 }
                 else if(sscanf(cmd, "RECMACDATA,%d,%d", (int*)&rssi,(int*)&platformDataLen) == 2) //+RECDATA,rssi,<len>:<data>
@@ -458,13 +456,13 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                         memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
 
                         if(loraEventHandler != NULL){
-                            loraEventHandler(event_lorawan_status,ep_cloud_data_custom,rssi,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
+                            loraEventHandler(event_cloud_status,ep_cloud_data_custom,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
                         }
                     }
                     else
                     {
                         if(loraEventHandler != NULL){
-                            loraEventHandler(event_lorawan_status,ep_cloud_data_datapoint,rssi,NULL,0);
+                            loraEventHandler(event_cloud_status,ep_cloud_data_datapoint,NULL,0);
                         }
                     }
                 }
@@ -477,7 +475,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                     memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
 
                     if(loraEventHandler != NULL){
-                        loraEventHandler(event_lora_radio_status,ep_lora_radio_rx_done,rssi,platformData+1,platformDataLen);
+                        loraEventHandler(event_lora_radio_status,ep_lora_radio_rx_done,platformData+1,platformDataLen);
                     }
                 }
             }

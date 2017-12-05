@@ -28,32 +28,35 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-enum LoRaEvents{
-    event_lorawan_status = 1,
-    event_lora_radio_status = 2,
-};
+/** 事件类型*/
+typedef enum {
+    event_cloud_status                 = 1,    // cloud event
+    event_lorawan_status               = 2,
+    event_lora_radio_status            = 3,
+} system_event_t;
 
 /** 事件枚举*/
-typedef enum
-{
-    ep_lorawan_join_success     = 1,
-    ep_lorawan_join_fail        = 2,
-    ep_lorawan_send_success     = 3,
-    ep_lorawan_send_fail        = 4,
-    ep_lorawan_module_wakeup    = 5,
-    ep_cloud_data_datapoint     = 6,
-    ep_cloud_data_custom        = 7,
-} lorawan_event_type_t;
+typedef enum SystemEventsParam {
+    //lorawan
+    ep_lorawan_join_success            = 1,
+    ep_lorawan_join_fail               = 2,
+    ep_lorawan_send_success            = 3,
+    ep_lorawan_send_fail               = 4,
+    ep_lorawan_module_wakeup           = 5,
 
-typedef enum
-{
+    //cloud data
+    ep_cloud_data_raw                  = 1,  //原始数据 事件
+    ep_cloud_data_datapoint            = 2,  //数据点数据协议处理 事件
+    ep_cloud_data_custom               = 3,  //自定义数据协议处理 事件
+
+    //lora radio
     ep_lora_radio_tx_done              = 1,
     ep_lora_radio_tx_fail              = 2,
+    ep_lora_radio_rx_done              = 3,
     ep_lora_radio_rx_timeout           = 4,
     ep_lora_radio_rx_error             = 5,
     ep_lora_radio_module_wakeup        = 6,
-    ep_lora_radio_rx_done              = 7,
-}lora_radio_event_type_t;
+}system_event_param_t;
 
 enum {
     // waitFinalResp Responses
