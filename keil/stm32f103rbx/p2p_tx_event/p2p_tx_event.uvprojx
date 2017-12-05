@@ -405,19 +405,9 @@
           <GroupName>hal</GroupName>
           <Files>
             <File>
-              <FileName>hal_init.c</FileName>
+              <FileName>hal_interface.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\src\hal\stm32f103rbx\src\hal_init.c</FilePath>
-            </File>
-            <File>
-              <FileName>hal_time.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\hal\stm32f103rbx\src\hal_time.c</FilePath>
-            </File>
-            <File>
-              <FileName>hal_usart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\hal\stm32f103rbx\src\hal_usart.c</FilePath>
+              <FilePath>..\..\..\src\hal\stm32f103rbx\src\hal_interface.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -438,6 +428,11 @@
               <FileName>intoyun_protocol.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\intoyun\src\intoyun_protocol.c</FilePath>
+            </File>
+            <File>
+              <FileName>intoyun_log.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\intoyun\src\intoyun_log.c</FilePath>
             </File>
           </Files>
         </Group>

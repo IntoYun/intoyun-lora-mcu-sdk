@@ -139,8 +139,7 @@ typedef struct {
     long runtime;                                // 数据点间隔发送的运行时间
 }datapoint_control_t;
 
-
-typedef void (*event_handler_t)(uint8_t event, uint8_t param, int rssi, uint8_t *data, uint32_t len);
+typedef void (*event_handler_t)(system_event_t event, int param, uint8_t *data, uint16_t len);
 
 //System API
 void intoyunInit(void);

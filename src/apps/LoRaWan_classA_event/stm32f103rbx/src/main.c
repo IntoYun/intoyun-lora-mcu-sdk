@@ -72,11 +72,12 @@ void WakeupModule(void)
     WakeupPinWrite(1);
 }
 
-
-void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi, uint8_t *data, uint32_t len)
+void system_event_callback( system_event_t event, int param, uint8_t *data, uint16_t datalen)
 {
-    if(eventType == event_lorawan_status){
-        switch(event)
+    switch(event)
+    {
+    case event_lorawan_status:
+        switch(param)
         {
         case ep_lorawan_join_success://入网成功 已连接平台
             deviceState = DEVICE_STATE_SEND;
@@ -102,7 +103,13 @@ void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi,
         case ep_lorawan_module_wakeup:
             log_v("event lorawan system wakeup\r\n");
             break;
+        default:
+            break;
+        }
+        break;
 
+    case event_cloud_status:
+        switch(param){
         case ep_cloud_data_datapoint: //处理平台数据
             log_v("event lorawan receive platform datapoint\r\n");
             //灯泡控制
@@ -154,6 +161,9 @@ void LoRaWanEventProcess(uint8_t eventType,lorawan_event_type_t event, int rssi,
         default:
             break;
         }
+        break;
+    default:
+        break;
     }
 }
 
@@ -173,7 +183,7 @@ void userInit(void)
     log_v("lorawan slave mode\r\n");
     delay(100);
     System.setDeviceInfo(PRODUCT_ID,HARDWARE_VERSION,SOFTWARE_VERSION);
-    System.setEventCallback(LoRaWanEventProcess);
+    System.setEventCallback(system_event_callback);
     delay(10);
 
     //设置速率
