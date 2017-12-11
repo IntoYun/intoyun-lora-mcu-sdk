@@ -188,7 +188,7 @@ void userInit(void)
     delay(10);
 
     //设置速率
-    LoRaWan.setDatarate(DR_3);
+    LoRaWan.setDataRate(DR_3);
     //设置通道2的速率范围
     LoRaWan.setChannelDRRange(2,DR_3,DR_3);
     //关闭通道0

@@ -165,7 +165,7 @@ void userInit(void)
     System.setEventCallback(system_event_callback);
     delay(10);
 
-    LoRaWan.setDatarate(DR_3);
+    LoRaWan.setDataRate(DR_3);
     LoRaWan.setChannelDRRange(2,DR_3,DR_3);
     LoRaWan.setChannelStatus(0,false);
     LoRaWan.setChannelStatus(1,false);

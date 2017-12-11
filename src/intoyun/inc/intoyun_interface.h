@@ -96,8 +96,8 @@ typedef struct
     bool (*setOTAAParams)(char *devEui, char *appEui, char *appKey);
     bool (*setABPParams)(char *devAddr, char *nwkSkey, char *appSkey);
     bool (*setTxPower)(uint8_t index);
-    bool (*setDatarate)(uint8_t datarate);
-    int8_t (*getDatarate)(void);
+    bool (*setDataRate)(uint8_t datarate);
+    int8_t (*getDataRate)(void);
     bool (*setAdrOn)(bool enable);
     bool (*getAdrOn)(void);
     bool (*setDutyCyclePrescaler)(uint16_t dutyCycle);
