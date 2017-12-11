@@ -36,7 +36,7 @@ typedef enum {
 } system_event_t;
 
 /** 事件枚举*/
-typedef enum SystemEventsParam {
+enum SystemEventsParam {
     //lorawan
     ep_lorawan_join_success            = 1,
     ep_lorawan_join_fail               = 2,
@@ -56,7 +56,7 @@ typedef enum SystemEventsParam {
     ep_lora_radio_rx_timeout           = 4,
     ep_lora_radio_rx_error             = 5,
     ep_lora_radio_module_wakeup        = 6,
-}system_event_param_t;
+};
 
 enum {
     // waitFinalResp Responses

@@ -136,10 +136,10 @@ int intoyunExecuteMacJoin(uint8_t type, uint32_t timeout)
             loraSendResult = 0;
             while(1){
                 intoyunLoop();
-                if(loraSendResult == 1){
+                if(loraSendResult == ep_lorawan_join_success){
                     lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
                     return lorawanJoinStatus;
-                }else if(loraSendResult == 2){
+                }else if(loraSendResult == ep_lorawan_join_fail){
                     lorawanJoinStatus = LORAWAN_JOIN_FAIL;
                     return lorawanJoinStatus;
                 }
@@ -424,10 +424,10 @@ static int intoyunTransmitData(uint8_t frameType,uint8_t port, const uint8_t *bu
             loraSendResult = 0;
             while(1){
                 intoyunLoop();
-                if(loraSendResult == 3){
+                if(loraSendResult == ep_lorawan_send_success){
                     loraSendStatus = LORA_SEND_SUCCESS;
                     return LORA_SEND_SUCCESS;
-                }else if(loraSendResult == 4){
+                }else if(loraSendResult == ep_lorawan_send_fail){
                     loraSendStatus = LORA_SEND_FAIL;
                     return LORA_SEND_FAIL;
                 }
@@ -2033,10 +2033,10 @@ int intoyunRadioSendData(const uint8_t *buffer, uint8_t len, uint32_t timeout)
             loraSendResult = 0;
             while(1){
                 intoyunLoop();
-                if(loraSendResult == 1){
+                if(loraSendResult == ep_lora_radio_tx_done){
                     loraSendStatus = LORA_SEND_SUCCESS;
                     return LORA_SEND_SUCCESS;
-                }else if(loraSendResult == 2){
+                }else if(loraSendResult == ep_lora_radio_tx_fail){
                     loraSendStatus = LORA_SEND_FAIL;
                     return LORA_SEND_FAIL;
                 }

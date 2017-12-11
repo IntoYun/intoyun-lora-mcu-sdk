@@ -409,58 +409,86 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
             if (type == TYPE_PLUS)
             {
                 const char* cmd = buf+1;
-
                 //log_v("cmd = %s\r\n",cmd);
-
-                system_event_param_t systemEventParam;
+                int event, eventParam;
                 uint16_t platformDataLen;
                 uint8_t *platformData;
                 int rssi = 0;
 
-                if(sscanf(cmd,"RECRADIOEVT:%d\r\n",(int*)&systemEventParam) == 1)
+                if(sscanf(cmd,"RECRADIOEVT:%d\r\n",(int*)&event) == 1)
                 {
-                    loraSendResult = systemEventParam;
+                    switch(event){
+                    case 1:
+                        eventParam = ep_lora_radio_tx_done;
+                        loraSendResult = ep_lora_radio_tx_done;
+                        break;
+                    case 2:
+                        eventParam = ep_lora_radio_tx_fail;
+                        loraSendResult = ep_lora_radio_tx_fail;
+                        break;
+                    case 3:
+                        eventParam = ep_lora_radio_rx_timeout;
+                        break;
+                    case 4:
+                        eventParam = ep_lora_radio_rx_error;
+                        break;
+                    case 5:
+                        eventParam = ep_lora_radio_module_wakeup;
+                        break;
+                    default:
+                        break;
+                    }
                     if(loraEventHandler != NULL){
-                        loraEventHandler(event_lora_radio_status, systemEventParam, NULL, 0);
+                        loraEventHandler(event_lora_radio_status, eventParam, NULL, 0);
                     }
                 }
-                else if(sscanf(cmd,"RECMACEVT:%d\r\n",(int*)&systemEventParam) == 1)
+                else if(sscanf(cmd,"RECMACEVT:%d\r\n",(int*)&event) == 1)
                 {
-                    loraSendResult = systemEventParam;
-                    if(systemEventParam == ep_lorawan_join_success){
+                    switch(event){
+                    case 1:
+                        eventParam = ep_lorawan_join_success;
                         lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
-                    }else if(systemEventParam == ep_lorawan_join_fail){
+                        break;
+                    case 2:
+                        eventParam = ep_lorawan_join_fail;
                         lorawanJoinStatus = LORAWAN_JOIN_FAIL;
-                    }
-
-                    if(systemEventParam == ep_lorawan_send_success){
+                        break;
+                    case 3:
+                        eventParam = ep_lorawan_send_success;
                         loraSendStatus = LORA_SEND_SUCCESS;
-                    }else if(systemEventParam == ep_lorawan_send_fail){
+                        loraSendResult = ep_lorawan_send_success;
+                        break;
+                    case 4:
+                        eventParam = ep_lorawan_send_fail;
                         loraSendStatus = LORA_SEND_FAIL;
+                        loraSendResult = ep_lorawan_join_fail;
+                        break;
+                    case 5:
+                        eventParam = ep_lorawan_module_wakeup;
+                        break;
+                    default:
+                        break;
                     }
-
                     if(loraEventHandler != NULL){
-                        loraEventHandler(event_lorawan_status, systemEventParam, NULL, 0);
+                        loraEventHandler(event_lorawan_status, eventParam, NULL, 0);
                     }
                 }
                 else if(sscanf(cmd, "RECMACDATA,%d,%d", (int*)&rssi,(int*)&platformDataLen) == 2) //+RECDATA,rssi,<len>:<data>
                 {
                     platformData = (uint8_t *)strchr(buf, ':');
+                    //原始数据事件
+                    loraEventHandler(event_cloud_status, ep_cloud_data_raw, platformData, platformDataLen);
 
                     uint8_t datapointType = ProtocolParserPlatformData(platformData+1, platformDataLen);
-                    if(datapointType == CUSTOMER_DEFINE_DATA)
-                    {
+                    loraBuffer.rssi = rssi;
+                    if(datapointType == CUSTOMER_DEFINE_DATA){
                         loraBuffer.available = true;
-                        loraBuffer.rssi = rssi;
                         loraBuffer.bufferSize = platformDataLen;
                         memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
-
-                        if(loraEventHandler != NULL){
+                        if(loraEventHandler != NULL) {
                             loraEventHandler(event_cloud_status,ep_cloud_data_custom,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
                         }
-                    }
-                    else
-                    {
+                    } else {
                         if(loraEventHandler != NULL){
                             loraEventHandler(event_cloud_status,ep_cloud_data_datapoint,NULL,0);
                         }
@@ -473,7 +501,6 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                     loraBuffer.rssi = rssi;
                     loraBuffer.bufferSize = platformDataLen;
                     memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
-
                     if(loraEventHandler != NULL){
                         loraEventHandler(event_lora_radio_status,ep_lora_radio_rx_done,platformData+1,platformDataLen);
                     }
