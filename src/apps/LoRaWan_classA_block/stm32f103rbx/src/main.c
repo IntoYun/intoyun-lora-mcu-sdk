@@ -40,6 +40,7 @@ int dpEnumLightMode = 1;          //颜色模式
 char dpStringLcdDisplay[50] = "hello world!!!";  //字符显示
 double dpNumberTemperature = 12.34;   //温度
 uint8_t dpBinaryVal[9] = {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99}; //二进制数据
+uint16_t dpBinaryLen;
 
 
 void GPIO_Init(void)
@@ -141,7 +142,7 @@ void system_event_callback( system_event_t event, int param, uint8_t *data, uint
                 memset(dpStringLcdDisplay,0,50);
             }
             //二进制数据
-            if(RESULT_DATAPOINT_NEW == Cloud.readDatapointBinary(DPID_BINARY,dpBinaryVal,9)){
+            if(RESULT_DATAPOINT_NEW == Cloud.readDatapointBinary(DPID_BINARY,dpBinaryVal,&dpBinaryLen)){
                 log_v("datapoint binary = ");
                 for(uint8_t i = 0; i < 9; i++){
                     log_v("0x%x ",dpBinaryVal[i]);

@@ -178,7 +178,7 @@ read_datapoint_result_t intoyunReadDatapointNumberInt32(const uint16_t dpID, int
 read_datapoint_result_t intoyunReadDatapointNumberDouble(const uint16_t dpID, double *value);
 read_datapoint_result_t intoyunReadDatapointEnum(const uint16_t dpID, int *value);
 read_datapoint_result_t intoyunReadDatapointString(const uint16_t dpID, char *value);
-read_datapoint_result_t intoyunReadDatapointBinary(const uint16_t dpID, uint8_t *value, uint16_t len);
+read_datapoint_result_t intoyunReadDatapointBinary(const uint16_t dpID, uint8_t *value, uint16_t *len);
 
 //写入数据点值
 void intoyunWriteDatapointBool(const uint16_t dpID, bool value);
