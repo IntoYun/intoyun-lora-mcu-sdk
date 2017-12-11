@@ -477,7 +477,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                 {
                     platformData = (uint8_t *)strchr(buf, ':');
                     //原始数据事件
-                    loraEventHandler(event_cloud_status, ep_cloud_data_raw, platformData, platformDataLen);
+                    loraEventHandler(event_cloud_data, ep_cloud_data_raw, platformData, platformDataLen);
 
                     uint8_t datapointType = ProtocolParserPlatformData(platformData+1, platformDataLen);
                     loraBuffer.rssi = rssi;
@@ -486,11 +486,11 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                         loraBuffer.bufferSize = platformDataLen;
                         memcpy(loraBuffer.buffer,platformData+1,platformDataLen);
                         if(loraEventHandler != NULL) {
-                            loraEventHandler(event_cloud_status,ep_cloud_data_custom,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
+                            loraEventHandler(event_cloud_data,ep_cloud_data_custom,platformData+1,platformDataLen); //数据的第一个字节为0x32　用户自定义数据
                         }
                     } else {
                         if(loraEventHandler != NULL){
-                            loraEventHandler(event_cloud_status,ep_cloud_data_datapoint,NULL,0);
+                            loraEventHandler(event_cloud_data,ep_cloud_data_datapoint,NULL,0);
                         }
                     }
                 }

@@ -30,7 +30,7 @@
 
 /** 事件类型*/
 typedef enum {
-    event_cloud_status                 = 1,    // cloud event
+    event_cloud_data                   = 1,
     event_lorawan_status               = 2,
     event_lora_radio_status            = 3,
 } system_event_t;

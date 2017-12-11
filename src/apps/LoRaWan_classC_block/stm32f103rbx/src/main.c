@@ -86,7 +86,7 @@ void system_event_callback( system_event_t event, int param, uint8_t *data, uint
         }
         break;
 
-    case event_cloud_status:
+    case event_cloud_data:
         switch(param)
         {
         case ep_cloud_data_datapoint: //处理平台数据
