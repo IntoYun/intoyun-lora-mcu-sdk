@@ -12,9 +12,21 @@
 #define LED_ON	 	          HAL_GPIO_WritePin(LED_GPIO_PORT,LED_PIN, GPIO_PIN_RESET)
 #define LED_OFF		          HAL_GPIO_WritePin(LED_GPIO_PORT,LED_PIN, GPIO_PIN_SET)
 #define LED_TOG		          HAL_GPIO_TogglePin(LED_GPIO_PORT,LED_PIN)
-
 #define WAKEUP_PIN          GPIO_PIN_9
 #define WAKEUP_GPIO_PORT    GPIOB
+
+void GPIO_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct;
+    __GPIOB_CLK_ENABLE();
+    GPIO_InitStruct.Pin = LED_PIN | WAKEUP_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
+    HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(LED_GPIO_PORT, LED_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(WAKEUP_GPIO_PORT, WAKEUP_PIN, GPIO_PIN_SET);
+}
 
 //流程
 static enum eDeviceState
@@ -42,19 +54,6 @@ double dpNumberTemperature = 12.34;   //温度
 uint8_t dpBinaryVal[9] = {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99}; //二进制数据
 uint16_t dpBinaryLen;
 
-
-void GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct;
-    __GPIOB_CLK_ENABLE();
-    GPIO_InitStruct.Pin = LED_PIN | WAKEUP_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
-    HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
-    HAL_GPIO_WritePin(LED_GPIO_PORT, LED_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(WAKEUP_GPIO_PORT, WAKEUP_PIN, GPIO_PIN_SET);
-}
 
 void WakeupPinWrite(uint8_t val)
 {

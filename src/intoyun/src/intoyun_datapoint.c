@@ -171,6 +171,63 @@ bool intoyunQueryDisconnected(void)
     }
 }
 
+//串口发送数据
+static int intoyunTransmitData(uint8_t frameType,uint8_t port, const uint8_t *buffer, uint16_t len,uint16_t timeout)
+{
+    bool sendState = false;
+    uint32_t _timeout = timeout;
+    if(_timeout != 0){
+        if(_timeout < LORAWAN_SEND_TIMEOUT){
+            _timeout = LORAWAN_SEND_TIMEOUT;
+        }
+    }
+    sendState = ProtocolSendPlatformData(frameType,port,buffer,len,_timeout);
+    log_v("sendState =%d\r\n",sendState);
+    log_v("_timeout = %d\r\n",_timeout);
+    if(!sendState){//发送忙或者没有入网
+        loraSendStatus = LORA_SEND_FAIL;
+        return LORA_SEND_FAIL;
+    }else{
+        if(_timeout == 0){ //不阻塞 发送结果由事件方式返回
+            loraSendStatus = LORA_SENDING;
+            return LORA_SENDING; //发送中
+        }else{
+            uint32_t prevTime = millis();
+            loraSendResult = 0;
+            while(1){
+                intoyunLoop();
+                if(loraSendResult == ep_lorawan_send_success){
+                    loraSendStatus = LORA_SEND_SUCCESS;
+                    return LORA_SEND_SUCCESS;
+                }else if(loraSendResult == ep_lorawan_send_fail){
+                    loraSendStatus = LORA_SEND_FAIL;
+                    return LORA_SEND_FAIL;
+                }
+                if(millis() - prevTime > _timeout*1000){
+                    loraSendStatus = LORA_SEND_FAIL;
+                    return LORA_SEND_FAIL;
+                }
+            }
+        }
+    }
+}
+
+//发送用户自定义格式数据
+int intoyunSendCustomData(uint8_t type,uint8_t port, uint32_t timeout, const uint8_t *buffer, uint16_t len)
+{
+    uint8_t buf[256];
+    uint16_t index = len+1;
+    if(index > 256)
+    {
+        index = 256;
+    }
+
+    buf[0] = CUSTOMER_DEFINE_DATA;
+    memcpy(&buf[1],buffer,index-1);
+    return intoyunTransmitData(type,port,buf,index,timeout);
+}
+
+#ifdef CONFIG_INTOYUN_DATAPOINT
 //datapoint API
 void intoyunDatapointControl(dp_transmit_mode_t mode, uint32_t lapse)
 {
@@ -399,47 +456,6 @@ static uint16_t intoyunFormAllDatapoint(uint8_t *buffer, uint16_t len, bool dpFo
     return index;
 }
 
-//串口发送数据
-static int intoyunTransmitData(uint8_t frameType,uint8_t port, const uint8_t *buffer, uint16_t len,uint16_t timeout)
-{
-    bool sendState = false;
-    uint32_t _timeout = timeout;
-    if(_timeout != 0){
-        if(_timeout < LORAWAN_SEND_TIMEOUT){
-            _timeout = LORAWAN_SEND_TIMEOUT;
-        }
-    }
-    sendState = ProtocolSendPlatformData(frameType,port,buffer,len,_timeout);
-    log_v("sendState =%d\r\n",sendState);
-    log_v("_timeout = %d\r\n",_timeout);
-    if(!sendState){//发送忙或者没有入网
-        loraSendStatus = LORA_SEND_FAIL;
-        return LORA_SEND_FAIL;
-    }else{
-        if(_timeout == 0){ //不阻塞 发送结果由事件方式返回
-            loraSendStatus = LORA_SENDING;
-            return LORA_SENDING; //发送中
-        }else{
-            uint32_t prevTime = millis();
-            loraSendResult = 0;
-            while(1){
-                intoyunLoop();
-                if(loraSendResult == ep_lorawan_send_success){
-                    loraSendStatus = LORA_SEND_SUCCESS;
-                    return LORA_SEND_SUCCESS;
-                }else if(loraSendResult == ep_lorawan_send_fail){
-                    loraSendStatus = LORA_SEND_FAIL;
-                    return LORA_SEND_FAIL;
-                }
-                if(millis() - prevTime > _timeout*1000){
-                    loraSendStatus = LORA_SEND_FAIL;
-                    return LORA_SEND_FAIL;
-                }
-            }
-        }
-    }
-}
-
 //发送单个数据点的数据
 static int intoyunSendSingleDatapoint(const uint16_t dpID, bool confirmed, uint16_t timeout)
 {
@@ -491,21 +507,6 @@ static int intoyunSendDatapointAll(bool dpForm, bool confirmed, uint32_t timeout
         frameType = 1;
     }
     return intoyunTransmitData(frameType,2,buffer,len,timeout);
-}
-
-//发送用户自定义格式数据
-int intoyunSendCustomData(uint8_t type,uint8_t port, uint32_t timeout, const uint8_t *buffer, uint16_t len)
-{
-    uint8_t buf[256];
-    uint16_t index = len+1;
-    if(index > 256)
-    {
-        index = 256;
-    }
-
-    buf[0] = CUSTOMER_DEFINE_DATA;
-    memcpy(&buf[1],buffer,index-1);
-    return intoyunTransmitData(type,port,buf,index,timeout);
 }
 
 //手动发送数据点
@@ -1415,7 +1416,7 @@ void intoyunParseReceiveDatapoints(const uint8_t *payload, uint32_t len, uint8_t
         }
     }
 }
-
+#endif
 
 //LoRaWan API
 int intoyunSendConfirmed(uint8_t port, uint8_t *buffer, uint16_t len, uint16_t timeout)

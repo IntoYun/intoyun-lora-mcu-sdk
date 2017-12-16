@@ -6,4 +6,5 @@ uint32_t HAL_Millis(void);
 void HAL_UartWrite(uint8_t c);
 void HAL_Print(char *data, uint16_t len);
 
+
 #endif

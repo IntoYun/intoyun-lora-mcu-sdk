@@ -1,5 +1,6 @@
 #include "stm32f1xx_hal.h"
 #include "intoyun_protocol.h"
+#include "hal_interface.h"
 
 UART_HandleTypeDef huart1; //USART1用于与模组通讯
 UART_HandleTypeDef huart2; //USART2 用于打印调试信息
@@ -124,7 +125,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
         /* HAL_NVIC_DisableIRQ(USART2_IRQn); */
     }
 }
-
 
 void HAL_SystemInit(void)
 {

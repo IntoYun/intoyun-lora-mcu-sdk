@@ -16,11 +16,15 @@
   License along with this library; if not, see <http://www.gnu.org/licenses/>.
   ******************************************************************************
 */
+
 #ifndef _INTOYUN_INTERFACE_H
 #define _INTOYUN_INTERFACE_H
 
 #include "intoyun_datapoint.h"
 #include "intoyun_protocol.h"
+#include "intoyun_key.h"
+#include "intoyun_timer.h"
+#include "intoyun_config.h"
 #include "intoyun_log.h"
 
 #define UINT_MAX    0xFFFFFFFF
@@ -50,6 +54,7 @@ typedef struct
     void (*disconnect)(void); //lorawan断开连接
     bool (*disconnected)(void); //查询lorawan是否已经断开连接
     //数据点相关接口
+    #ifdef CONFIG_INTOYUN_DATAPOINT
     //定义数据点
     void (*defineDatapointBool)(const uint16_t dpID, dp_permission_t permission, const bool value);
     void (*defineDatapointNumber)(const uint16_t dpID, dp_permission_t permission, const double minValue, const double maxValue, const int resolution, const double value);
@@ -78,6 +83,7 @@ typedef struct
     int (*sendDatapointString)(const uint16_t dpID, const char *value, bool confirmed, uint16_t timeout);
     int (*sendDatapointBinary)(const uint16_t dpID, const uint8_t *value, uint16_t len, bool confirmed, uint16_t timeout);
     int (*sendDatapointAll)(bool confirmed, uint32_t timeout); //发送全部数据点数据
+    #endif
 }cloud_t;
 
 typedef struct
@@ -175,6 +181,39 @@ typedef struct
     int8_t (*radioReadReg)(uint8_t addr);
     bool (*radioWriteReg)(uint8_t addr, uint8_t val);
 }lora_t;
+
+#ifdef CONFIG_INTOYUN_KEY
+
+typedef struct {
+    void (*init)(void);
+    void (*setParams)(bool invert, uint32_t debounceTime, uint32_t clickTime, uint32_t pressTime);
+    void (*keyRegister)(uint8_t num, cbInitFunc initFunc, cbGetValueFunc getValFunc);
+    void (*attachClick)(uint8_t num, cbClickFunc cbFunc);           //注册单击处理函数
+    void (*attachDoubleClick)(uint8_t num, cbClickFunc cbFunc);     //注册双击处理函数
+    void (*attachLongPressStart)(uint8_t num, cbPressFunc cbFunc);  //注册按下按键处理函数
+    void (*attachLongPressStop)(uint8_t num, cbPressFunc cbFunc);   //注册释放按键处理函数
+    void (*attachDuringLongPress)(uint8_t num, cbPressFunc cbFunc); //注册按键按下回调函数
+    void (*loop)(void);
+}keys_t;
+
+extern const keys_t Key;
+
+#endif
+
+#ifdef CONFIG_INTOYUN_TIMER
+
+typedef struct {
+    void (*timerRegister)(uint8_t num, uint32_t period, bool oneShot, cbTimerFunc cbFunc);
+    void (*changePeriod)(uint8_t num, uint32_t period);
+    void (*start)(uint8_t num);
+    void (*stop)(uint8_t num);
+    void (*reset)(uint8_t num);
+    void (*loop)(void);
+}timers_t;
+
+extern const timers_t Timer;
+
+#endif
 
 void delay(uint32_t ms);
 uint32_t millis(void);
