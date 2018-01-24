@@ -459,13 +459,13 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                         break;
                     case 3:
                         eventParam = ep_lorawan_send_success;
-                        loraSendResult = ep_lorawan_send_success;
                         loraSendStatus = LORA_SEND_SUCCESS;
+                        loraSendResult = ep_lorawan_send_success;
                         break;
                     case 4:
                         eventParam = ep_lorawan_send_fail;
-                        loraSendResult = ep_lorawan_send_fail;
                         loraSendStatus = LORA_SEND_FAIL;
+                        loraSendResult = ep_lorawan_send_fail;
                         break;
                     case 5:
                         eventParam = ep_lorawan_module_wakeup;
