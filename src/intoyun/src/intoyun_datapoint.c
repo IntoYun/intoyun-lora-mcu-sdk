@@ -92,9 +92,9 @@ bool intoyunExecuteRestore(void)
     return ProtocolExecuteRestore();
 }
 
-bool intoyunSetupSystemSleep(uint32_t timeout)
+bool intoyunSetupSystemSleep(char *pin, InterruptMode edgeTriggerMode, uint32_t timeout)
 {
-    return ProtocolSetupSystemSleep(timeout);
+    return ProtocolSetupSystemSleep(pin,edgeTriggerMode,timeout);
 }
 
 bool intoyunExecuteDFU(void)

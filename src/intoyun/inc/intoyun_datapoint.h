@@ -49,6 +49,12 @@
 #define DR_4        4  // SF8  - BW125
 #define DR_5        5  // SF7  - BW125
 
+typedef enum {
+    CHANGE,
+    RISING,
+    FALLING
+} InterruptMode;
+
 typedef enum eDeviceClass
 {
     CLASS_A,
@@ -150,7 +156,7 @@ void intoyunSetupDevice(char *productId, char *hardVer, char *softVer);
 bool intoyunSetupProtocol(uint8_t mode);
 bool intoyunExecuteRestart(void);
 bool intoyunExecuteRestore(void);
-bool intoyunSetupSystemSleep(uint32_t timeout);
+bool intoyunSetupSystemSleep(char *pin, InterruptMode edgeTriggerMode, uint32_t timeout);
 bool intoyunExecuteDFU(void);
 void intoyunPutPipe(uint8_t value);
 
