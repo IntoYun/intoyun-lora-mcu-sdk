@@ -450,10 +450,12 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                     case 1:
                         eventParam = ep_lorawan_join_success;
                         lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
+                        loraSendResult = ep_lorawan_join_success;
                         break;
                     case 2:
                         eventParam = ep_lorawan_join_fail;
                         lorawanJoinStatus = LORAWAN_JOIN_FAIL;
+                        loraSendResult = ep_lorawan_join_fail;
                         break;
                     case 3:
                         eventParam = ep_lorawan_send_success;
