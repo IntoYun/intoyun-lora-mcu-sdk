@@ -450,10 +450,12 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                     case 1:
                         eventParam = ep_lorawan_join_success;
                         lorawanJoinStatus = LORAWAN_JOIN_SUCCESS;
+                        loraSendResult = ep_lorawan_join_success;
                         break;
                     case 2:
                         eventParam = ep_lorawan_join_fail;
                         lorawanJoinStatus = LORAWAN_JOIN_FAIL;
+                        loraSendResult = ep_lorawan_join_fail;
                         break;
                     case 3:
                         eventParam = ep_lorawan_send_success;
@@ -463,7 +465,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
                     case 4:
                         eventParam = ep_lorawan_send_fail;
                         loraSendStatus = LORA_SEND_FAIL;
-                        loraSendResult = ep_lorawan_join_fail;
+                        loraSendResult = ep_lorawan_send_fail;
                         break;
                     case 5:
                         eventParam = ep_lorawan_module_wakeup;
@@ -673,11 +675,11 @@ bool ProtocolExecuteRestore(void)
     return false;
 }
 
-bool ProtocolSetupSystemSleep(uint32_t timeout)
+bool ProtocolSetupSystemSleep(char *pin, uint8_t edgeTriggerMode, uint32_t timeout)
 {
     if (parserInitDone)
     {
-        ProtocolParserSendFormated("AT+SLEEP=%d\r\n",timeout);
+        ProtocolParserSendFormated("AT+SLEEP=\"%s\",%d,%d\r\n",pin, edgeTriggerMode, timeout);
         if (RESP_OK == ProtocolParserWaitFinalResp(NULL, NULL,5000))
         {
             return true;

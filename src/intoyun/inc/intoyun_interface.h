@@ -41,7 +41,7 @@ typedef struct
 
     bool (*resetModule)(void);
     bool (*restoreModule)(void);
-    bool (*sleepModule)(uint32_t timeout);
+    bool (*sleepModule)(char *pin, InterruptMode edgeTriggerMode, uint32_t timeout);
     bool (*updateModule)(void);
     void (*putPipe)(uint8_t value);
 

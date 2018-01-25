@@ -155,7 +155,7 @@ bool ProtocolSendRadioData(const uint8_t *buffer, uint16_t length, uint32_t time
 
 bool ProtocolExecuteRestart(void);
 bool ProtocolExecuteRestore(void);
-bool ProtocolSetupSystemSleep(uint32_t timeout);
+bool ProtocolSetupSystemSleep(char *pin, uint8_t edgeTriggerMode, uint32_t timeout);
 bool ProtocolExecuteDFU(void);
 bool ProtocolQueryInfo(device_info_t *info);
 bool ProtocolSetupDevice(char *product_id, char *hardware_version, char *software_version);
