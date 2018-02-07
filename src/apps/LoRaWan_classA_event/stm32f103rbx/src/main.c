@@ -230,8 +230,8 @@ void userHandle(void)
 
     case DEVICE_STATE_SLEEP:
         delay(100);
-        System.sleepModule("PA4",FALLING,0);
-        delay(30000);
+        System.sleepModule("PA4",FALLING,5);
+        delay(10000);
         deviceState = DEVICE_STATE_SEND;
         break;
 

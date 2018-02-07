@@ -178,7 +178,7 @@ void userHandle(void)
 
         case DEVICE_STATE_SLEEP:
             //通讯模式为CLASS_A才允许休眠 如果选择C类则去掉
-            System.sleepModule(60);
+            System.sleepModule("PA4",FALLING,60);
             break;
             /************************/
 
