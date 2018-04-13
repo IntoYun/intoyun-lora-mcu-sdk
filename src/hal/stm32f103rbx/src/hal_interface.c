@@ -158,3 +158,4 @@ void HAL_Print(char *data, uint16_t len)
         HAL_UART_Transmit(&huart2, &tmp, 1, 100);
     }
 }
+
