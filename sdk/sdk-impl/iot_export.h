@@ -25,6 +25,8 @@ extern "C" {
 
 #include "iot_import.h"
 #include "exports/iot_export_cloud.h"
+#include "exports/iot_export_lora.h"
+#include "exports/iot_export_lorawan.h"
 #include "exports/iot_export_system.h"
 #include "exports/iot_export_log.h"
 

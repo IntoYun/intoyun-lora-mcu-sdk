@@ -16,14 +16,15 @@
  *
  */
 
-#ifndef __IOT_EXPORT_CLOUD_H__
-#define __IOT_EXPORT_CLOUD_H__
+#ifndef __IOT_EXPORT_LORA_H__
+#define __IOT_EXPORT_LORA_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "sdk_config.h"
+#include "iotx_lora_api.h"
 
 typedef struct
 {

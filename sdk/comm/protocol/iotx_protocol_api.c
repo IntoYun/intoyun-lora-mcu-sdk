@@ -25,6 +25,10 @@
 
 const static char *TAG = "sdk:protocol";
 
+uint8_t loraSendResult = 0;
+int lorawanJoinStatus = -1; //0 连接平台 1 连接中 -1 未连接
+int8_t loraSendStatus = 0; //数据发送状态 0 成功 1 发送中 -1 失败
+
 #define MAX_SIZE        512  //!< max expected messages (used with RX)
 
 //! check for timeout
@@ -55,7 +59,6 @@ static void PipeInit(pipe_t *pipe, int n, char *b)//默认b = NULL
     pipe->_s = n;
 }
 
-
 static bool PipeWriteable(pipe_t *pipe)
 {
     return PipeFree(pipe) > 0;
@@ -72,7 +75,6 @@ static int PipeFree(pipe_t *pipe)
     return s - 1;
 }
 
-
 /* Add a single element to the buffer. (blocking)
    \param c the element to add.
    \return c
@@ -88,7 +90,6 @@ static char PipePutc(pipe_t *pipe, char c)
     pipe->_w = i;
     return c;
 }
-
 
 /** Get the number of values available in the buffer
     return the number of element available
@@ -161,7 +162,7 @@ static char PipeNext(pipe_t *pipe)
 static int SerialPipePutc(int c)
 {
     uint8_t data = c;
-    HAL_UartWrite(data);
+    HAL_CommWrite(data);
     return c;
 }
 
@@ -247,7 +248,6 @@ static int ProtocolParserMatch(pipe_t *pipe, int len, const char* sta, const cha
     return o;
 }
 
-
 //查询对方主动发过来的数据
 static int ProtocolParserFormated(pipe_t *pipe, int len, const char* fmt)
 {
@@ -299,7 +299,6 @@ static int ProtocolParserFormated(pipe_t *pipe, int len, const char* fmt)
     }
     return o;
 }
-
 
 static int ProtocolParserGetOnePacket(pipe_t *pipe, char* buf, int len)
 {
@@ -379,6 +378,7 @@ static uint8_t ProtocolParserPlatformData(const uint8_t *buffer, uint16_t len)
 //等待响应
 static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t timeout_ms) //NULL NULL 5000
 {
+#if 0
     if (cancelAllOperations) return WAIT;
 
     char buf[MAX_SIZE] = {0};
@@ -390,7 +390,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
             //handle unsolicited commands here
             if (type == TYPE_PLUS) {
                 const char* cmd = buf+1;
-                //log_v("cmd = %s\r\n",cmd);
+                MOLMC_LOGV(TAG, "cmd = %s\r\n",cmd);
                 int event, eventParam;
                 uint16_t platformDataLen;
                 uint8_t *platformData;
@@ -510,6 +510,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
         }
         // relax a bit
     } while(!TIMEOUT(start, timeout_ms) && !cancelAllOperations);
+#endif
 
     return WAIT;
 }
@@ -517,7 +518,7 @@ static int ProtocolParserWaitFinalResp(callbackPtr cb, void* param, uint32_t tim
 //-------AT指令协议数据处理接口-------
 bool IOT_Protocol_ParserInit(void)
 {
-    PipeInit(&pipeRx,PIPE_MAX_SIZE,NULL);
+    PipeInit(&pipeRx, CONFIG_PIPE_MAX_SIZE, NULL);
 
     if(!parserInitDone) {
         cancelAllOperations = false;
@@ -1846,7 +1847,7 @@ bool IOT_Protocol_SetRadioIqInverted(uint8_t iqInverted)
     return false;
 }
 
-int IOT_Protocol_GetRadioIqInvertedCallback(int type, const char* buf, int len, int *iqInverted)
+int ProtocolQueryRadioIqInvertedCallback(int type, const char* buf, int len, int *iqInverted)
 {
     if (iqInverted && (type == TYPE_PLUS)) {
         int radioIqverted;
@@ -2049,5 +2050,57 @@ int8_t IOT_Protocol_GetRadioReadRegister(uint8_t addr)
         }
     }
     return -1;
+}
+
+bool IOT_Protocol_loop(void)
+{
+    ProtocolParserWaitFinalResp(NULL, NULL, 0);
+}
+
+void IOT_Protocol_SetRevCallback(recCallback_t handler)
+{
+    if(handler != NULL) {
+        recCallbackHandler = handler;
+    }
+}
+
+int IOT_Protocol_SendData(uint8_t frameType, uint8_t port, const uint8_t *buffer, uint16_t len, uint16_t timeout)
+{
+    bool sendState = false;
+    uint32_t _timeout = timeout;
+    if(_timeout != 0){
+        if(_timeout < LORAWAN_SEND_TIMEOUT){
+            _timeout = LORAWAN_SEND_TIMEOUT;
+        }
+    }
+    sendState = IOT_Protocol_SendPlatformData(frameType, port, buffer, len, _timeout);
+    MOLMC_LOGV(TAG, "sendState =%d\r\n",sendState);
+    MOLMC_LOGV(TAG, "_timeout = %d\r\n",_timeout);
+    if(!sendState){//发送忙或者没有入网
+        loraSendStatus = LORA_SEND_FAIL;
+        return LORA_SEND_FAIL;
+    }else{
+        if(_timeout == 0){ //不阻塞 发送结果由事件方式返回
+            loraSendStatus = LORA_SENDING;
+            return LORA_SENDING; //发送中
+        }else{
+            uint32_t prevTime = millis();
+            loraSendResult = 0;
+            while(1){
+                IOT_Protocol_loop();
+                if(loraSendResult == ep_lorawan_send_success){
+                    loraSendStatus = LORA_SEND_SUCCESS;
+                    return LORA_SEND_SUCCESS;
+                }else if(loraSendResult == ep_lorawan_send_fail){
+                    loraSendStatus = LORA_SEND_FAIL;
+                    return LORA_SEND_FAIL;
+                }
+                if(millis() - prevTime > _timeout*1000){
+                    loraSendStatus = LORA_SEND_FAIL;
+                    return LORA_SEND_FAIL;
+                }
+            }
+        }
+    }
 }
 

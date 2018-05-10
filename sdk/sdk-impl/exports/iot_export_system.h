@@ -39,7 +39,7 @@ typedef struct
     void (*getModuleInfo)(char *moduleVersion, char *moduleType, char *deviceId, uint8_t *atMode); //获取模块信息
     bool (*setProtocol)(uint8_t mode);  //设置协议模式
 
-    bool (*resetModule)(void);
+    bool (*rebootModule)(void);
     bool (*restoreModule)(void);
     bool (*sleepModule)(char *pin, InterruptMode edgeTriggerMode, uint32_t timeout);
     bool (*updateModule)(void);

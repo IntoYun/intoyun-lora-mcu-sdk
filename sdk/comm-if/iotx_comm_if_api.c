@@ -105,7 +105,7 @@ void IOT_Comm_Disconnect(void)
     IOT_Protocol_Join(1);
 }
 
-int IOT_Comm_SendData(const uint8_t *data, uint16_t datalen)
+int IOT_Comm_SendData(uint8_t confirmed, const uint8_t *data, uint16_t datalen, uint16_t timeout)
 {
     MOLMC_LOGD(TAG, "IOT_Comm_SendData");
 
@@ -113,7 +113,7 @@ int IOT_Comm_SendData(const uint8_t *data, uint16_t datalen)
         return -1;
     }
 
-    return IOT_Protocol_SendData(data, datalen) ? 0 : -1;
+    return IOT_Protocol_SendData(confirmed, 2, data, datalen, timeout);
 }
 
 int IOT_Comm_Yield(void)

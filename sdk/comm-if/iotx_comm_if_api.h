@@ -41,7 +41,7 @@ int IOT_Comm_Init(void);
 void IOT_Comm_Connect(void);
 bool IOT_Comm_IsConnected(void);
 void IOT_Comm_Disconnect(void);
-int IOT_Comm_SendData(const uint8_t *data, uint16_t dataLen);
+int IOT_Comm_SendData(uint8_t confirmed, const uint8_t *data, uint16_t datalen, uint16_t timeout);
 int IOT_Comm_Yield(void);
 
 #ifdef __cplusplus

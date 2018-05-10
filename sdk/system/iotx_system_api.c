@@ -23,36 +23,6 @@
 const static char *TAG = "sdk:system";
 
 static event_handler_t eventHandler = NULL;
-static iotx_work_mode_t iotx_work_mode = IOTX_WORK_MODE_NORMAL;
-
-/* get type of mode */
-iotx_work_mode_t iotx_get_work_mode(void)
-{
-    return iotx_work_mode;
-}
-
-void iotx_set_work_mode(iotx_work_mode_t newMode)
-{
-    if(iotx_get_work_mode() != newMode) {
-        switch(newMode) {
-            case IOTX_WORK_MODE_NORMAL:
-                IOT_SYSTEM_NotifyEvent(event_mode_changed, ep_mode_normal, NULL, 0);
-                break;
-            case IOTX_WORK_MODE_IMLINK_CONFIG:
-                IOT_SYSTEM_NotifyEvent(event_mode_changed, ep_mode_imlink_config, NULL, 0);
-                break;
-            case IOTX_WORK_MODE_AP_CONFIG:
-                IOT_SYSTEM_NotifyEvent(event_mode_changed, ep_mode_ap_config, NULL, 0);
-                break;
-            case IOTX_WORK_MODE_BINDING:
-                IOT_SYSTEM_NotifyEvent(event_mode_changed, ep_mode_binding, NULL, 0);
-                break;
-            default:
-                break;
-        }
-    }
-    iotx_work_mode = newMode;
-}
 
 void IOT_SYSTEM_SetDeviceInfo(char *productID, char *productSecret, char *hardwareVersion, char *softwareVersion)
 {
@@ -61,6 +31,7 @@ void IOT_SYSTEM_SetDeviceInfo(char *productID, char *productSecret, char *hardwa
 
 void IOT_SYSTEM_GetModuleInfo(char *moduleVersion, char *moduleType, char *deviceId, uint8_t *at_mode)
 {
+    /*
     module_info_t info;
     if(!IOT_Protocol_QueryInfo(&info)) {
         return;
@@ -75,6 +46,7 @@ void IOT_SYSTEM_GetModuleInfo(char *moduleVersion, char *moduleType, char *devic
     strncpy(moduleType, info.module_type, sizeof(info.module_type));
     strncpy(deviceId, info.device_id, sizeof(info.device_id));
     *at_mode = info.at_mode;
+    */
 }
 
 void IOT_SYSTEM_Init(void)
@@ -101,17 +73,7 @@ void IOT_SYSTEM_NotifyEvent(iotx_system_event_t event, iotx_system_events_param_
     }
 }
 
-bool IOT_SYSTEM_SetMode(iotx_work_mode_t mode, uint32_t timeout)
-{
-    return IOT_Protocol_SetMode((uint8_t)mode,timeout);
-}
-
-iotx_work_mode_t IOT_SYSTEM_GetMode(void)
-{
-    return (iotx_work_mode_t)IOT_Protocol_QueryMode();
-}
-
-bool IOT_SYSTEM_Restart(void)
+bool IOT_SYSTEM_Reboot(void)
 {
     return IOT_Protocol_Reboot();
 }
@@ -121,42 +83,18 @@ bool IOT_SYSTEM_Restore(void)
     return IOT_Protocol_Restore();
 }
 
+bool IOT_SYSTEM_Sleep(char *pin, uint8_t edgeTriggerMode, uint32_t timeout)
+{
+    return IOT_Protocol_SystemSleep(pin, edgeTriggerMode, timeout);
+}
+
+bool IOT_SYSTEM_EnterDFU(void)
+{
+    return IOT_Protocol_EnterDFU();
+}
+
 void IOT_SYSTEM_PutPipe(uint8_t value)
 {
     IOT_Protocol_PutPipe(value);//将接收到的数据放入缓冲区
-}
-
-bool IOT_SYSTEM_GetNetTime(char *net_time, char *timestamp)
-{
-    network_time_t netTime;
-
-    if(!IOT_Protocol_QueryNetTime(&netTime)) {
-        return false;
-    }
-    if(netTime.status == 1) {
-        strncpy(net_time,netTime.net_time,sizeof(netTime.net_time));
-        strncpy(timestamp,netTime.timestamp,sizeof(netTime.timestamp));
-        return true;
-    }
-    return false;
-}
-
-uint8_t IOT_SYSTEM_GetStatus(char *ssid, uint32_t *ipAddr, int *rssi)
-{
-    module_status_t moduleStatus;
-
-    if(!IOT_Protocol_QueryStatus(&moduleStatus)) {
-        return 0;
-    }
-
-    if(moduleStatus.module_status != 1) {
-        MOLMC_LOGV(TAG, "ssid=%s\r\n",moduleStatus.wifi.ssid);
-        MOLMC_LOGV(TAG, "ipAddr=%d\r\n",moduleStatus.wifi.ipAddr);
-        MOLMC_LOGV(TAG, "rssi=%d\r\n",moduleStatus.wifi.rssi);
-        strncpy(ssid,moduleStatus.wifi.ssid,sizeof(moduleStatus.wifi.ssid));
-        *ipAddr = moduleStatus.wifi.ipAddr;
-        *rssi = moduleStatus.wifi.rssi;
-    }
-    return moduleStatus.module_status;
 }
 
